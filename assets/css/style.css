@@ -288,14 +288,134 @@ a:hover {
     resize: vertical;
 }
 
-/* ===== SURVEY COMPONENTS - Typeform Layout ===== */
-.survey-wrapper {
-    min-height: 100vh;
+/* ===== GLOBAL MATERIAL UI OVERRIDES ===== */
+.btn {
+    box-shadow: none !important;
+}
+
+.btn:hover {
+    box-shadow: none !important;
+}
+
+.btn:focus {
+    box-shadow: none !important;
+}
+
+/* ===== COVER PAGE ===== */
+.cover-wrapper {
+    min-height: 100vh;   /* fallback */
+    min-height: 100dvh;  /* unità moderna */
     display: flex;
     align-items: center;
     justify-content: center;
     background-color: var(--gray-50);
+    transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+    position: relative;
+    padding: 0; /* Ensure no padding difference */
+}
+
+.cover-wrapper.fade-out {
+    opacity: 0;
+    transform: translateY(-20px);
+}
+
+/* Cover Progress Indicator */
+.cover-progress-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 4px;
+    background-color: var(--gray-200);
+    z-index: 10;
+}
+
+.cover-progress-fill {
+    height: 100%;
+    background-color: var(--primary-color);
+    width: 0%; /* Start at 0% for cover page */
+}
+
+.cover-logo {
+    margin-bottom: var(--space-2);
+    display: flex;
+    justify-content: flex-start;
+}
+
+.cover-logo svg {
+    height: auto;
+    width: auto;
+    max-width: 80px;
+    fill: var(--main-color);
+}
+
+.cover-container {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+}
+
+.cover-content {
+    flex: 1;
+    max-width: 50%;
     padding: var(--space-4);
+}
+
+.cover-title {
+    font-size: 4rem;
+    font-weight: var(--font-bold);
+    color: var(--main-color);
+    margin-top: 0;
+    margin-bottom: var(--space-4);
+    line-height: 1.1;
+}
+
+.cover-description {
+    font-size: var(--text-lg);
+    color: var(--gray-600);
+    line-height: 1.6;
+    margin-bottom: var(--space-6);
+}
+
+.cover-btn {
+    background-color: var(--primary-color) !important;
+    font-size: var(--text-lg);
+    padding: var(--space-3) var(--space-6);
+    border-radius: var(--border-radius-lg);
+    text-transform: none;
+    font-weight: var(--font-medium);
+    box-shadow: none !important;
+}
+
+.cover-image {
+    flex: 1;
+    max-width: 50%;
+    height: 100vh;   /* fallback */
+    height: 100dvh;  /* unità moderna */
+    overflow: hidden;
+    border-radius: var(--border-radius-lg);
+    position: relative;
+}
+
+.cover-image img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* ===== SURVEY COMPONENTS - Typeform Layout ===== */
+.survey-wrapper {
+    min-height: 100vh;   /* fallback */
+    min-height: 100dvh;  /* unità moderna */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--gray-50);
     position: relative;
 }
 
@@ -305,6 +425,7 @@ a:hover {
     display: flex;
     flex-direction: column;
     gap: var(--space-4);
+    padding: var(--space-4);
     transition: opacity 0.3s ease-out, transform 0.3s ease-out;
 }
 
@@ -326,16 +447,59 @@ a:hover {
     transition: width 0.5s ease-out;
 }
 
+.progress-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: var(--space-1);
+}
+
+.progress-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: var(--space-1);
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.progress-container:hover {
+    color: var(--gray-800);
+}
+
 .progress-text {
     font-size: var(--text-sm);
     color: var(--gray-600);
     font-weight: var(--font-normal);
-    margin-bottom: var(--space-1);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+.back-arrow {
+    font-size: var(--text-sm);
+    color: var(--gray-600);
+    transition: color 0.2s ease;
+}
+
+.progress-container:hover .back-arrow {
+    color: var(--gray-800);
 }
 
 /* Question Header */
 .question-header {
     text-align: left;
+}
+
+.survey-logo {
+    margin-bottom: var(--space-4);
+    display: flex;
+    justify-content: flex-start;
+}
+
+.survey-logo svg {
+    height: 32px;
+    width: auto;
+    fill: var(--main-color);
 }
 
 .question-title {
@@ -373,12 +537,12 @@ a:hover {
     background: white;
     border: 2px solid var(--gray-200);
     border-radius: var(--radius-md);
-    padding: var(--space-3);
+    padding: var(--space-2);
     cursor: pointer;
     transition: all var(--transition-normal);
     display: flex;
     align-items: center;
-    gap: var(--space-3);
+    gap: var(--space-2);
     position: relative;
     min-height: 50px;
 }
@@ -430,9 +594,10 @@ a:hover {
 /* Action Container */
 .action-container {
     display: flex;
-    justify-content: flex-start;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
     padding-top: var(--space-3);
-    border-top: 1px solid var(--gray-200);
 }
 
 #confirm-btn {
@@ -444,6 +609,7 @@ a:hover {
     display: flex;
     align-items: center;
     gap: var(--space-1);
+    box-shadow: none !important;
 }
 
 #confirm-btn:not(:disabled) {
@@ -453,6 +619,7 @@ a:hover {
 
 #confirm-btn:not(:disabled):hover {
     background-color: var(--primary-600) !important;
+    box-shadow: none !important;
 }
 
 /* Checkmark Animation */
@@ -512,8 +679,50 @@ a:hover {
         padding: var(--space-4);
     }
     
+    /* Cover Mobile Styles */
+    .cover-container {
+        flex-direction: column;
+        gap: 0;
+        height: 100vh;   /* fallback */
+        height: 100dvh;  /* unità moderna */
+    }
+    
+    .cover-content {
+        max-width: 100%;
+        order: 2;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: var(--space-6);
+    }
+    
+    .cover-image {
+        max-width: 100%;
+        height: 50vh;   /* fallback */
+        height: 50dvh;  /* unità moderna */
+        order: 1;
+        flex-shrink: 0;
+        position: relative;
+        padding: var(--space-6) var(--space-6) 0 var(--space-6);
+    }
+    
+    .cover-image img {
+        position: relative;
+        top: auto;
+        left: auto;
+    }
+    
+    .cover-title {
+        font-size: 2.5rem;
+    }
+    
+    .cover-description {
+        font-size: var(--text-base);
+    }
+
     /* Survey Mobile Styles */
-    .survey-wrapper {
+    .survey-container {
         padding: var(--space-6);
     }
     
@@ -527,6 +736,10 @@ a:hover {
     
     .question-title i {
         font-size: var(--text-base);
+    }
+    
+    .survey-logo svg {
+        height: 28px;
     }
     
     .question-description {
