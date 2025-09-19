@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Survey</title>
+    
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome -->
+    <script src="https://kit.fontawesome.com/c1250c7805.js" crossorigin="anonymous"></script>
+    
+    <!-- Materialize CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <div class="survey-wrapper">
+        <div class="survey-container">
+            <!-- Question Header -->
+            <div class="question-header">
+                <h1 class="question-title">1 <i class="fa-thin fa-arrow-right"></i> Qual è la tua esperienza con i prodotti digitali?</h1>
+                <p class="question-description">Aiutaci a capire meglio le tue preferenze per migliorare i nostri servizi</p>
+            </div>
+
+            <!-- Answer Options -->
+            <div class="answers-container">
+                <div class="answer-option" data-answer="A">
+                    <div class="answer-letter">A</div>
+                    <div class="answer-text">Sono un principiante, ho poca esperienza</div>
+                </div>
+                
+                <div class="answer-option" data-answer="B">
+                    <div class="answer-letter">B</div>
+                    <div class="answer-text">Ho un'esperienza intermedia</div>
+                </div>
+                
+                <div class="answer-option" data-answer="C">
+                    <div class="answer-letter">C</div>
+                    <div class="answer-text">Sono abbastanza esperto</div>
+                </div>
+                
+                <div class="answer-option" data-answer="D">
+                    <div class="answer-letter">D</div>
+                    <div class="answer-text">Sono molto esperto</div>
+                </div>
+                
+                <div class="answer-option" data-answer="E">
+                    <div class="answer-letter">E</div>
+                    <div class="answer-text">Sono un esperto professionista</div>
+                </div>
+            </div>
+
+            <!-- Action Button -->
+            <div class="action-container">
+                <button class="btn waves-effect waves-light" id="confirm-btn" disabled>
+                    OK
+                    <div id="check-icon" class="checkmark">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path class="checkmark-path" d="M20 6L9 17l-5-5"/>
+                        </svg>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Materialize JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="assets/js/script.js"></script>
+</body>
+</html>
