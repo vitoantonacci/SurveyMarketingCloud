@@ -12,6 +12,7 @@ ThankYouManager.prototype.init = function() {
         this.loadThankYouData();
         this.loadSurveyData();
         this.renderThankYouPage();
+        this.setupEventListeners();
     } catch (error) {
         console.error('Error initializing thank you page:', error);
     }
@@ -101,6 +102,9 @@ ThankYouManager.prototype.generateSurveySummary = function() {
     var summary = '<div class="survey-summary" style="margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #288749;">';
     summary += '<h3 style="margin: 0 0 15px 0; color: #1d1d1d; font-size: 18px;">Riepilogo delle tue risposte:</h3>';
     
+    // Create scrollable container with fixed height
+    summary += '<div id="answers-container" style="height: 300px; overflow-y: auto; position: relative; margin-bottom: 15px; transition: height 0.3s ease-in-out;">';
+    
     for (var i = 0; i < this.surveyData.results.length; i++) {
         var result = this.surveyData.results[i];
         var questionText = this.getQuestionText(result.questionId);
@@ -111,6 +115,13 @@ ThankYouManager.prototype.generateSurveySummary = function() {
         summary += '<span style="color: #666; font-size: 14px;"><strong>Risposta:</strong> ' + this.formatAnswer(result) + '</span>';
         summary += '</div>';
     }
+    
+    // Add fade effect at bottom
+    summary += '<div class="fade-overlay" style="position: absolute; bottom: 0; left: 0; right: 0; height: 30px; background: linear-gradient(transparent, #f8f9fa); pointer-events: none;"></div>';
+    summary += '</div>';
+    
+    // Add expand/collapse button
+    summary += '<button id="toggle-answers-btn" style="width: 100%; padding: 10px; background: #288749; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; margin-bottom: 15px;">Mostra tutto</button>';
     
     summary += '<div style="margin-top: 15px; font-size: 12px; color: #888;">';
     summary += 'Completato il: ' + new Date(this.surveyData.completedAt).toLocaleString('it-IT');
@@ -195,6 +206,33 @@ ThankYouManager.prototype.formatMultipleChoiceAnswer = function(questionId, answ
     }
     
     return answerLetter;
+};
+
+ThankYouManager.prototype.setupEventListeners = function() {
+    var self = this;
+    var toggleBtn = document.getElementById('toggle-answers-btn');
+    var answersContainer = document.getElementById('answers-container');
+    var fadeOverlay = document.querySelector('.fade-overlay');
+    
+    if (toggleBtn && answersContainer) {
+        var isExpanded = false;
+        
+        toggleBtn.addEventListener('click', function() {
+            if (isExpanded) {
+                // Collapse
+                answersContainer.style.height = '300px';
+                fadeOverlay.style.display = 'block';
+                toggleBtn.textContent = 'Mostra tutto';
+                isExpanded = false;
+            } else {
+                // Expand
+                answersContainer.style.height = 'auto';
+                fadeOverlay.style.display = 'none';
+                toggleBtn.textContent = 'Mostra meno';
+                isExpanded = true;
+            }
+        });
+    }
 };
 
 // Initialize the thank you page when DOM is loaded
