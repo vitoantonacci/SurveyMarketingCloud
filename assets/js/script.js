@@ -554,16 +554,23 @@ SurveyManager.prototype.handleConfirmClick = function() {
     }
     
     // Save the answer (even if empty for optional questions)
+    var answerToSave = this.selectedAnswer || '';
+    
+    // For multi_likert, ensure the object is properly serialized
+    if (currentQuestion.type === 'multi_likert' && typeof answerToSave === 'object') {
+        answerToSave = JSON.stringify(answerToSave);
+    }
+    
     this.results.push({
         questionId: currentQuestion.id,
-        answer: this.selectedAnswer || '',
-        type: currentQuestion.type
+        answer: answerToSave,
+        questionType: currentQuestion.type
     });
 
     console.log('Answer saved:', {
         questionId: currentQuestion.id,
-        answer: this.selectedAnswer,
-        type: currentQuestion.type
+        answer: answerToSave,
+        questionType: currentQuestion.type
     });
 
     // Disable the button to prevent multiple clicks
