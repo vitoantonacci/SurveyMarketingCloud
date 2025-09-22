@@ -736,9 +736,29 @@ SurveyManager.prototype.showResults = function() {
     
     var self = this;
     setTimeout(function() {
-        // Redirect to thank you page
-        window.location.href = 'thankyou.html';
+        // Submit survey data via form POST
+        self.submitSurveyData();
     }, 300);
+};
+
+SurveyManager.prototype.submitSurveyData = function() {
+    // Build URL with survey data as parameters
+    var params = new URLSearchParams();
+    
+    // Add survey results as URL parameters
+    for (var i = 0; i < this.results.length; i++) {
+        var result = this.results[i];
+        params.append('question_' + result.questionId, JSON.stringify(result));
+    }
+    
+    // Add total questions count
+    params.append('total_questions', this.questions.length);
+    
+    // Add completion timestamp
+    params.append('completed_at', new Date().toISOString());
+    
+    // Redirect to thank you page with data
+    window.location.href = 'thankyou.html?' + params.toString();
 };
 
 SurveyManager.prototype.setupEventListeners = function() {
