@@ -103,9 +103,12 @@ ThankYouManager.prototype.generateSurveySummary = function() {
     
     for (var i = 0; i < this.surveyData.results.length; i++) {
         var result = this.surveyData.results[i];
+        var questionText = this.getQuestionText(result.questionId);
+        
         summary += '<div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #e9ecef;">';
         summary += '<strong style="color: #1d1d1d;">Domanda ' + result.questionId + ':</strong><br>';
-        summary += '<span style="color: #666; font-size: 14px;">' + this.formatAnswer(result) + '</span>';
+        summary += '<span style="color: #333; font-size: 14px; font-style: italic; margin: 5px 0; display: block;">' + questionText + '</span>';
+        summary += '<span style="color: #666; font-size: 14px;"><strong>Risposta:</strong> ' + this.formatAnswer(result) + '</span>';
         summary += '</div>';
     }
     
@@ -117,26 +120,53 @@ ThankYouManager.prototype.generateSurveySummary = function() {
     return summary;
 };
 
+ThankYouManager.prototype.getQuestionText = function(questionId) {
+    if (typeof questionsData === 'undefined' || !questionsData.questions) {
+        return 'Domanda non disponibile';
+    }
+    
+    for (var i = 0; i < questionsData.questions.length; i++) {
+        if (questionsData.questions[i].id === questionId) {
+            return questionsData.questions[i].title;
+        }
+    }
+    
+    return 'Domanda non trovata';
+};
+
 ThankYouManager.prototype.formatAnswer = function(result) {
     if (!result.answer) return 'Nessuna risposta';
     
+    // Handle case where answer might be a string representation of an object
+    var answer = result.answer;
+    if (typeof answer === 'string' && answer.startsWith('{')) {
+        try {
+            answer = JSON.parse(answer);
+        } catch (e) {
+            console.error('Error parsing answer:', e);
+        }
+    }
+    
     switch (result.questionType) {
         case 'multiple_choice':
-            return result.answer;
+            return answer;
         case 'likert_scale':
-            return 'Punteggio: ' + result.answer + '/5';
+            return 'Punteggio: ' + answer + '/5';
         case 'yes_no':
-            return result.answer === 'yes' ? 'Sì' : 'No';
+            return answer === 'yes' ? 'Sì' : 'No';
         case 'open_text':
-            return result.answer.length > 100 ? result.answer.substring(0, 100) + '...' : result.answer;
+            return answer.length > 100 ? answer.substring(0, 100) + '...' : answer;
         case 'multi_likert':
-            var aspects = [];
-            for (var aspect in result.answer) {
-                aspects.push(aspect + ': ' + result.answer[aspect] + '/5');
+            if (typeof answer === 'object' && answer !== null) {
+                var aspects = [];
+                for (var aspect in answer) {
+                    aspects.push(aspect + ': ' + answer[aspect] + '/5');
+                }
+                return aspects.join(', ');
             }
-            return aspects.join(', ');
+            return answer;
         default:
-            return result.answer;
+            return answer;
     }
 };
 
