@@ -149,7 +149,7 @@ ThankYouManager.prototype.formatAnswer = function(result) {
     
     switch (result.questionType) {
         case 'multiple_choice':
-            return answer;
+            return this.formatMultipleChoiceAnswer(result.questionId, answer);
         case 'likert_scale':
             return 'Punteggio: ' + answer + '/5';
         case 'yes_no':
@@ -168,6 +168,33 @@ ThankYouManager.prototype.formatAnswer = function(result) {
         default:
             return answer;
     }
+};
+
+ThankYouManager.prototype.formatMultipleChoiceAnswer = function(questionId, answerLetter) {
+    if (typeof questionsData === 'undefined' || !questionsData.questions) {
+        return answerLetter;
+    }
+    
+    // Find the question
+    var question = null;
+    for (var i = 0; i < questionsData.questions.length; i++) {
+        if (questionsData.questions[i].id === questionId) {
+            question = questionsData.questions[i];
+            break;
+        }
+    }
+    
+    if (!question || !question.answers) {
+        return answerLetter;
+    }
+    
+    // Find the answer text for the given letter
+    var answerIndex = answerLetter.charCodeAt(0) - 65; // A=0, B=1, C=2, etc.
+    if (answerIndex >= 0 && answerIndex < question.answers.length) {
+        return answerLetter + ') ' + question.answers[answerIndex].text;
+    }
+    
+    return answerLetter;
 };
 
 // Initialize the thank you page when DOM is loaded
