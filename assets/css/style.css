@@ -599,6 +599,10 @@ a:hover {
     box-shadow: none !important;
 }
 
+.cover-btn:hover {
+    color: white !important;
+}
+
 .cover-image {
     flex: 1;
     max-width: 50%;

@@ -99,11 +99,11 @@ ThankYouManager.prototype.renderThankYouPage = function() {
 ThankYouManager.prototype.generateSurveySummary = function() {
     if (!this.surveyData || !this.surveyData.results.length) return '';
     
-    var summary = '<div class="survey-summary" style="margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #288749;">';
+    var summary = '<div class="survey-summary" style="display: none; margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #288749;">';
     summary += '<h3 style="margin: 0 0 15px 0; color: #1d1d1d; font-size: 18px;">Riepilogo delle tue risposte:</h3>';
     
     // Create scrollable container with fixed height
-    summary += '<div id="answers-container" style="height: 300px; overflow-y: auto; position: relative; margin-bottom: 15px; transition: height 0.3s ease-in-out;">';
+    summary += '<div id="answers-container" style="height: 150px; overflow-y: auto; position: relative; margin-bottom: 15px; transition: height 0.3s ease-in-out;">';
     
     for (var i = 0; i < this.surveyData.results.length; i++) {
         var result = this.surveyData.results[i];
@@ -121,7 +121,7 @@ ThankYouManager.prototype.generateSurveySummary = function() {
     summary += '</div>';
     
     // Add expand/collapse button
-    summary += '<button id="toggle-answers-btn" style="width: 100%; padding: 10px; background: #288749; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; margin-bottom: 15px;">Mostra tutto</button>';
+    summary += '<button id="toggle-answers-btn" style="background: none; border: none; color: #288749; cursor: pointer; font-size: 14px; text-decoration: underline; padding: 0; margin-bottom: 15px;">Mostra tutto</button>';
     
     summary += '<div style="margin-top: 15px; font-size: 12px; color: #888;">';
     summary += 'Completato il: ' + new Date(this.surveyData.completedAt).toLocaleString('it-IT');
@@ -220,7 +220,7 @@ ThankYouManager.prototype.setupEventListeners = function() {
         toggleBtn.addEventListener('click', function() {
             if (isExpanded) {
                 // Collapse
-                answersContainer.style.height = '300px';
+                answersContainer.style.height = '150px';
                 fadeOverlay.style.display = 'block';
                 toggleBtn.textContent = 'Mostra tutto';
                 isExpanded = false;

@@ -736,16 +736,11 @@ SurveyManager.prototype.handleKeyboardNavigation = function(e, answerOptions, co
 };
 
 SurveyManager.prototype.showResults = function() {
-    // Add fade out animation
-    this.surveyContainer.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
-    this.surveyContainer.style.opacity = '0';
-    this.surveyContainer.style.transform = 'translateY(20px)';
+    // Hide the survey container immediately to prevent flickering
+    this.surveyContainer.style.display = 'none';
     
-    var self = this;
-    setTimeout(function() {
-        // Submit survey data via form POST
-        self.submitSurveyData();
-    }, 300);
+    // Submit survey data immediately
+    this.submitSurveyData();
 };
 
 SurveyManager.prototype.submitSurveyData = function() {
