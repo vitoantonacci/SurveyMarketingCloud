@@ -22,58 +22,11 @@ SurveyManager.prototype.init = function() {
 };
 
 SurveyManager.prototype.loadQuestions = function() {
-    // Questions data object
-    var questionsData = {
-        cover: {
-            title: "Scopri le tue preferenze digitali",
-            description: "Un breve sondaggio per capire meglio le tue abitudini e preferenze tecnologiche. Ci aiuterà a migliorare i nostri servizi.",
-            buttonText: "Inizia il sondaggio",
-            imageUrl: "https://images.typeform.com/images/RMtyJ36PEuNA/image/default-firstframe.png"
-        },
-        questions: [
-                {
-                    id: 1,
-                    title: "Qual è la tua esperienza con i prodotti digitali?",
-                    description: "Aiutaci a capire meglio le tue preferenze per migliorare i nostri servizi",
-                    answers: [
-                        {
-                            text: "Sono un principiante, ho poca esperienza"
-                        },
-                        {
-                            text: "Ho un'esperienza intermedia"
-                        },
-                        {
-                            text: "Sono abbastanza esperto"
-                        },
-                        {
-                            text: "Sono molto esperto"
-                        },
-                        {
-                            text: "Sono un esperto professionista"
-                        }
-                    ]
-                },
-                {
-                    id: 2,
-                    title: "Quale dispositivo utilizzi principalmente?",
-                    description: "Ci aiuta a ottimizzare l'esperienza per il tuo dispositivo preferito",
-                    answers: [
-                        {
-                            text: "Smartphone"
-                        },
-                        {
-                            text: "Tablet"
-                        },
-                        {
-                            text: "Laptop/Desktop"
-                        },
-                        {
-                            text: "Tutti i dispositivi"
-                        }
-                    ]
-                }
-            ]
-        };
+    // Load questions from external questionsData variable
+    if (typeof questionsData === 'undefined') {
+        console.error('questionsData is not defined. Make sure questions.js is loaded before script.js');
+        return;
+    }
         
     this.questions = questionsData.questions;
     this.coverData = questionsData.cover;
@@ -122,13 +75,33 @@ SurveyManager.prototype.renderCurrentQuestion = function() {
 
 SurveyManager.prototype.generateQuestionHTML = function(question) {
     var answersHTML = '';
-    for (var i = 0; i < question.answers.length; i++) {
-        var answer = question.answers[i];
-        var letter = String.fromCharCode(65 + i); // A, B, C, D, E...
-        answersHTML += '<div class="answer-option" data-answer="' + letter + '">' +
-            '<div class="answer-letter">' + letter + '</div>' +
-            '<div class="answer-text">' + answer.text + '</div>' +
-            '</div>';
+    var actionButtonHTML = '';
+    
+    // Generate different UI based on question type
+    switch(question.type) {
+        case 'multiple_choice':
+            answersHTML = this.generateMultipleChoiceHTML(question);
+            actionButtonHTML = this.generateActionButtonHTML(question, true);
+            break;
+        case 'likert_scale':
+            answersHTML = this.generateLikertScaleHTML(question);
+            actionButtonHTML = this.generateActionButtonHTML(question, true);
+            break;
+        case 'yes_no':
+            answersHTML = this.generateYesNoHTML(question);
+            actionButtonHTML = this.generateActionButtonHTML(question, true);
+            break;
+        case 'open_text':
+            answersHTML = this.generateOpenTextHTML(question);
+            actionButtonHTML = this.generateActionButtonHTML(question, false);
+            break;
+        case 'multi_likert':
+            answersHTML = this.generateMultiLikertHTML(question);
+            actionButtonHTML = this.generateActionButtonHTML(question, true);
+            break;
+        default:
+            answersHTML = this.generateMultipleChoiceHTML(question);
+            actionButtonHTML = this.generateActionButtonHTML(question, true);
     }
 
     return '<!-- Question Header -->' +
@@ -141,8 +114,8 @@ SurveyManager.prototype.generateQuestionHTML = function(question) {
         '</div>' : '<div class="progress-container">' +
         '<p class="progress-text">Domanda ' + question.id + ' di ' + this.questions.length + '</p>' +
         '</div>') +
-        '<h1 class="question-title">' + question.id + ' <i class="fa-thin fa-arrow-right"></i> ' + question.title + '</h1>' +
-        '<p class="question-description">' + question.description + '</p>' +
+        '<h1 class="question-title">' + question.id + ' <i class="fa-thin fa-arrow-right"></i> ' + question.title + (question.required ? ' *' : '') + '</h1>' +
+        '<p class="question-description">' + question.description + (!question.required ? ' (Risposta opzionale)' : '') + '</p>' +
         '</div>' +
         '<!-- Answer Options -->' +
         '<div class="answers-container">' +
@@ -150,45 +123,153 @@ SurveyManager.prototype.generateQuestionHTML = function(question) {
         '</div>' +
         '<!-- Action Button -->' +
         '<div class="action-container">' +
-        '<button class="btn waves-effect waves-light" id="confirm-btn" disabled>' +
-        'OK' +
+        actionButtonHTML +
+        '</div>';
+};
+
+SurveyManager.prototype.generateMultipleChoiceHTML = function(question) {
+    var answersHTML = '';
+    for (var i = 0; i < question.answers.length; i++) {
+        var answer = question.answers[i];
+        var letter = String.fromCharCode(65 + i); // A, B, C, D, E...
+        answersHTML += '<div class="answer-option" data-answer="' + letter + '">' +
+            '<div class="answer-letter">' + letter + '</div>' +
+            '<div class="answer-text">' + answer.text + '</div>' +
+            '</div>';
+    }
+    return answersHTML;
+};
+
+SurveyManager.prototype.generateLikertScaleHTML = function(question) {
+    var scaleHTML = '<div class="likert-scale">';
+    var scale = question.scale;
+    
+    // Scale options
+    scaleHTML += '<div class="scale-options">';
+    for (var i = scale.min; i <= scale.max; i++) {
+        scaleHTML += '<div class="scale-option" data-value="' + i + '">' +
+            '<div class="scale-number">' + i + '</div>' +
+            '</div>';
+    }
+    scaleHTML += '</div>';
+    
+    // Scale labels
+    scaleHTML += '<div class="scale-labels">' +
+        '<span class="scale-label-min">' + scale.labels.min + '</span>' +
+        '<span class="scale-label-max">' + scale.labels.max + '</span>' +
+        '</div>';
+    
+    scaleHTML += '</div>';
+    
+    return scaleHTML;
+};
+
+SurveyManager.prototype.generateYesNoHTML = function(question) {
+    return '<div class="yes-no-option" data-answer="yes">' +
+        '<div class="answer-letter"><i class="fa-thin fa-check"></i></div>' +
+        '<div class="answer-text">Sì</div>' +
+        '</div>' +
+        '<div class="yes-no-option" data-answer="no">' +
+        '<div class="answer-letter"><i class="fa-thin fa-xmark"></i></div>' +
+        '<div class="answer-text">No</div>' +
+        '</div>';
+};
+
+SurveyManager.prototype.generateOpenTextHTML = function(question) {
+    return '<div class="open-text-container">' +
+        '<textarea class="open-text-input" id="open-text-' + question.id + '" ' +
+        'placeholder="' + (question.placeholder || 'Scrivi la tua risposta...') + '" ' +
+        'rows="4"></textarea>' +
+        '</div>';
+};
+
+SurveyManager.prototype.generateMultiLikertHTML = function(question) {
+    var multiLikertHTML = '<div class="multi-likert-container">';
+    var scale = question.scale;
+    
+    for (var i = 0; i < question.aspects.length; i++) {
+        var aspect = question.aspects[i];
+        multiLikertHTML += '<div class="multi-likert-aspect">' +
+            '<div class="aspect-name">' + aspect.name + '</div>' +
+            '<div class="aspect-scale">';
+        
+        for (var j = scale.min; j <= scale.max; j++) {
+            multiLikertHTML += '<div class="scale-option" data-aspect="' + aspect.id + '" data-value="' + j + '">' +
+                '<div class="scale-number">' + j + '</div>' +
+                '</div>';
+        }
+        
+        multiLikertHTML += '</div></div>';
+    }
+    
+    // Scale labels
+    multiLikertHTML += '<div class="scale-labels">' +
+        '<span class="scale-label-min">' + scale.labels.min + '</span>' +
+        '<span class="scale-label-max">' + scale.labels.max + '</span>' +
+        '</div>';
+    
+    multiLikertHTML += '</div>';
+    return multiLikertHTML;
+};
+
+SurveyManager.prototype.generateActionButtonHTML = function(question, showCheckmark) {
+    var buttonText = 'OK';
+    var checkmarkHTML = showCheckmark ? 
         '<div id="check-icon" class="checkmark">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
         '<path class="checkmark-path" d="M20 6L9 17l-5-5"/>' +
         '</svg>' +
-        '</div>' +
-        '</button>' +
-        '</div>';
+        '</div>' : '';
+    
+    return '<button class="btn waves-effect waves-light" id="confirm-btn" ' + 
+        (question.required ? 'disabled' : '') + '>' +
+        buttonText + checkmarkHTML +
+        '</button>';
 };
 
 SurveyManager.prototype.updateProgressBar = function(question) {
-    // Remove existing progress bar
-    var existingProgress = document.querySelector('.progress-indicator');
-    if (existingProgress) {
-        existingProgress.remove();
-    }
-
-    // Create new progress bar
-    var progressBar = document.createElement('div');
-    progressBar.className = 'progress-indicator';
-    progressBar.innerHTML = '<div class="progress-fill" style="width: ' + ((question.id / this.questions.length) * 100) + '%"></div>';
+    var progressBar = document.querySelector('.progress-indicator');
+    var progressFill = document.querySelector('.progress-fill');
     
-    // Add to wrapper
-    var wrapper = document.querySelector('.survey-wrapper');
-    wrapper.appendChild(progressBar);
+    if (!progressBar) {
+        // Create progress bar if it doesn't exist
+        progressBar = document.createElement('div');
+        progressBar.className = 'progress-indicator';
+        progressBar.innerHTML = '<div class="progress-fill" style="width: 0%"></div>';
+        
+        // Add to wrapper
+        var wrapper = document.querySelector('.survey-wrapper');
+        wrapper.appendChild(progressBar);
+        progressFill = progressBar.querySelector('.progress-fill');
+    }
+    
+    // Update width with animation
+    var newWidth = ((question.id / this.questions.length) * 100);
+    progressFill.style.width = newWidth + '%';
 };
 
 SurveyManager.prototype.setupQuestionEventListeners = function() {
-    var answerOptions = document.querySelectorAll('.answer-option');
+    var currentQuestion = this.questions[this.currentQuestionIndex];
     var confirmBtn = document.getElementById('confirm-btn');
-    var checkIcon = document.getElementById('check-icon');
     var self = this;
 
-    // Handle answer selection
-    for (var i = 0; i < answerOptions.length; i++) {
-        answerOptions[i].addEventListener('click', function() {
-            self.handleAnswerSelection(this, answerOptions, confirmBtn, checkIcon);
-        });
+    // Handle different question types
+    switch(currentQuestion.type) {
+        case 'multiple_choice':
+            this.setupMultipleChoiceListeners(confirmBtn);
+            break;
+        case 'likert_scale':
+            this.setupLikertScaleListeners(confirmBtn);
+            break;
+        case 'yes_no':
+            this.setupYesNoListeners(confirmBtn);
+            break;
+        case 'open_text':
+            this.setupOpenTextListeners(confirmBtn);
+            break;
+        case 'multi_likert':
+            this.setupMultiLikertListeners(confirmBtn);
+            break;
     }
 
     // Handle confirm button click
@@ -203,11 +284,65 @@ SurveyManager.prototype.setupQuestionEventListeners = function() {
             self.handleBackClick();
         });
     }
+};
 
-    // Add keyboard navigation
-    document.addEventListener('keydown', function(e) {
-        self.handleKeyboardNavigation(e, answerOptions, confirmBtn);
-    });
+SurveyManager.prototype.setupMultipleChoiceListeners = function(confirmBtn) {
+    var answerOptions = document.querySelectorAll('.answer-option');
+    var checkIcon = document.getElementById('check-icon');
+    var self = this;
+
+    for (var i = 0; i < answerOptions.length; i++) {
+        answerOptions[i].addEventListener('click', function() {
+            self.handleAnswerSelection(this, answerOptions, confirmBtn, checkIcon);
+        });
+    }
+};
+
+SurveyManager.prototype.setupLikertScaleListeners = function(confirmBtn) {
+    var scaleOptions = document.querySelectorAll('.scale-option');
+    var checkIcon = document.getElementById('check-icon');
+    var self = this;
+
+    for (var i = 0; i < scaleOptions.length; i++) {
+        scaleOptions[i].addEventListener('click', function() {
+            self.handleScaleSelection(this, scaleOptions, confirmBtn, checkIcon);
+        });
+    }
+};
+
+SurveyManager.prototype.setupYesNoListeners = function(confirmBtn) {
+    var yesNoOptions = document.querySelectorAll('.yes-no-option');
+    var checkIcon = document.getElementById('check-icon');
+    var self = this;
+
+    for (var i = 0; i < yesNoOptions.length; i++) {
+        yesNoOptions[i].addEventListener('click', function() {
+            self.handleYesNoSelection(this, yesNoOptions, confirmBtn, checkIcon);
+        });
+    }
+};
+
+SurveyManager.prototype.setupOpenTextListeners = function(confirmBtn) {
+    var textarea = document.querySelector('.open-text-input');
+    var self = this;
+
+    if (textarea) {
+        textarea.addEventListener('input', function() {
+            self.handleTextInput(this, confirmBtn);
+        });
+    }
+};
+
+SurveyManager.prototype.setupMultiLikertListeners = function(confirmBtn) {
+    var scaleOptions = document.querySelectorAll('.multi-likert-container .scale-option');
+    var checkIcon = document.getElementById('check-icon');
+    var self = this;
+
+    for (var i = 0; i < scaleOptions.length; i++) {
+        scaleOptions[i].addEventListener('click', function() {
+            self.handleMultiLikertSelection(this, scaleOptions, confirmBtn, checkIcon);
+        });
+    }
 };
 
 SurveyManager.prototype.handleAnswerSelection = function(selectedOption, allOptions, confirmBtn, checkIcon) {
@@ -243,6 +378,138 @@ SurveyManager.prototype.handleAnswerSelection = function(selectedOption, allOpti
     }, 600); // Wait for checkmark animation (0.6s) + buffer
 };
 
+SurveyManager.prototype.handleScaleSelection = function(selectedOption, allOptions, confirmBtn, checkIcon) {
+    // Remove selected class from all options
+    for (var i = 0; i < allOptions.length; i++) {
+        allOptions[i].classList.remove('selected');
+    }
+    
+    // Add selected class to clicked option
+    selectedOption.classList.add('selected');
+    
+    // Get selected value
+    this.selectedAnswer = selectedOption.getAttribute('data-value');
+    
+    // Enable confirm button
+    confirmBtn.disabled = false;
+    
+    // Animate checkmark with drawing effect
+    this.animateCheckmark(checkIcon);
+    
+    // Add some visual feedback
+    var self = this;
+    selectedOption.style.transform = 'scale(1.05)';
+    setTimeout(function() {
+        selectedOption.style.transform = '';
+    }, 150);
+    
+    // Auto-proceed after checkmark animation completes
+    setTimeout(function() {
+        if (self.selectedAnswer) {
+            self.handleConfirmClick();
+        }
+    }, 600);
+};
+
+SurveyManager.prototype.handleYesNoSelection = function(selectedOption, allOptions, confirmBtn, checkIcon) {
+    // Remove selected class from all options
+    for (var i = 0; i < allOptions.length; i++) {
+        allOptions[i].classList.remove('selected');
+    }
+    
+    // Add selected class to clicked option
+    selectedOption.classList.add('selected');
+    
+    // Get selected answer
+    this.selectedAnswer = selectedOption.getAttribute('data-answer');
+    
+    // Enable confirm button
+    confirmBtn.disabled = false;
+    
+    // Animate checkmark with drawing effect
+    this.animateCheckmark(checkIcon);
+    
+    // Add some visual feedback
+    var self = this;
+    selectedOption.style.transform = 'scale(1.05)';
+    setTimeout(function() {
+        selectedOption.style.transform = '';
+    }, 150);
+    
+    // Auto-proceed after checkmark animation completes
+    setTimeout(function() {
+        if (self.selectedAnswer) {
+            self.handleConfirmClick();
+        }
+    }, 600);
+};
+
+SurveyManager.prototype.handleTextInput = function(textarea, confirmBtn) {
+    var currentQuestion = this.questions[this.currentQuestionIndex];
+    var text = textarea.value.trim();
+    
+    // Store the text as selected answer
+    this.selectedAnswer = text;
+    
+    // Enable/disable button based on required status and text content
+    if (currentQuestion.required) {
+        confirmBtn.disabled = text.length === 0;
+    } else {
+        confirmBtn.disabled = false;
+    }
+};
+
+SurveyManager.prototype.handleMultiLikertSelection = function(selectedOption, allOptions, confirmBtn, checkIcon) {
+    var aspect = selectedOption.getAttribute('data-aspect');
+    var value = selectedOption.getAttribute('data-value');
+    
+    // Remove selected class from all options for this aspect
+    var aspectOptions = document.querySelectorAll('.scale-option[data-aspect="' + aspect + '"]');
+    for (var i = 0; i < aspectOptions.length; i++) {
+        aspectOptions[i].classList.remove('selected');
+    }
+    
+    // Add selected class to clicked option
+    selectedOption.classList.add('selected');
+    
+    // Store the answer (initialize if needed)
+    if (!this.selectedAnswer) {
+        this.selectedAnswer = {};
+    }
+    this.selectedAnswer[aspect] = value;
+    
+    // Check if all aspects are answered
+    var currentQuestion = this.questions[this.currentQuestionIndex];
+    var allAspectsAnswered = true;
+    for (var j = 0; j < currentQuestion.aspects.length; j++) {
+        if (!this.selectedAnswer[currentQuestion.aspects[j].id]) {
+            allAspectsAnswered = false;
+            break;
+        }
+    }
+    
+    // Enable confirm button if all aspects are answered
+    if (allAspectsAnswered) {
+        confirmBtn.disabled = false;
+        this.animateCheckmark(checkIcon);
+        
+        // Auto-proceed after checkmark animation completes
+        var self = this;
+        setTimeout(function() {
+            if (self.selectedAnswer && allAspectsAnswered) {
+                self.handleConfirmClick();
+            }
+        }, 600); // Wait for checkmark animation (0.6s) + buffer
+    }
+    
+    // Add some visual feedback
+    var self = this;
+    selectedOption.style.transform = 'scale(1.05)';
+    setTimeout(function() {
+        selectedOption.style.transform = '';
+    }, 150);
+};
+
 SurveyManager.prototype.animateCheckmark = function(checkIcon) {
     checkIcon.classList.remove('animate');
     checkIcon.style.animation = 'none';
@@ -265,25 +532,54 @@ SurveyManager.prototype.animateCheckmark = function(checkIcon) {
 };
 
 SurveyManager.prototype.handleConfirmClick = function() {
-    if (this.selectedAnswer) {
-        // Save the answer
-        this.results.push({
-            questionId: this.questions[this.currentQuestionIndex].id,
-            answer: this.selectedAnswer
-        });
-
-        console.log('Answer saved:', {
-            questionId: this.questions[this.currentQuestionIndex].id,
-            answer: this.selectedAnswer
-        });
-
-        // Disable the button to prevent multiple clicks
-        var confirmBtn = document.getElementById('confirm-btn');
-        confirmBtn.disabled = true;
-
-        // Transition immediately since animation already completed
-        this.transitionToNextQuestion();
+    var currentQuestion = this.questions[this.currentQuestionIndex];
+    
+    // Validate required questions
+    if (currentQuestion.required) {
+        var isValid = false;
+        
+        if (currentQuestion.type === 'multi_likert') {
+            // For multi-likert, check if all aspects are answered
+            if (this.selectedAnswer && typeof this.selectedAnswer === 'object') {
+                var allAspectsAnswered = true;
+                for (var i = 0; i < currentQuestion.aspects.length; i++) {
+                    if (!this.selectedAnswer[currentQuestion.aspects[i].id]) {
+                        allAspectsAnswered = false;
+                        break;
+                    }
+                }
+                isValid = allAspectsAnswered;
+            }
+        } else {
+            // For other question types, check if answer exists and is not empty
+            isValid = this.selectedAnswer && (typeof this.selectedAnswer === 'string' ? this.selectedAnswer.trim() !== '' : true);
+        }
+        
+        if (!isValid) {
+            this.showValidationError('Questa domanda è obbligatoria');
+            return;
+        }
     }
+    
+    // Save the answer (even if empty for optional questions)
+    this.results.push({
+        questionId: currentQuestion.id,
+        answer: this.selectedAnswer || '',
+        type: currentQuestion.type
+    });
+
+    console.log('Answer saved:', {
+        questionId: currentQuestion.id,
+        answer: this.selectedAnswer,
+        type: currentQuestion.type
+    });
+
+    // Disable the button to prevent multiple clicks
+    var confirmBtn = document.getElementById('confirm-btn');
+    confirmBtn.disabled = true;
+
+    // Transition immediately since animation already completed
+    this.transitionToNextQuestion();
 };
 
 SurveyManager.prototype.transitionToNextQuestion = function() {
@@ -353,24 +649,79 @@ SurveyManager.prototype.handleBackClick = function() {
     }
 };
 
-SurveyManager.prototype.preselectAnswer = function(answerLetter) {
-    var answerOptions = document.querySelectorAll('.answer-option');
+SurveyManager.prototype.showValidationError = function(message) {
+    // Remove existing error message
+    var existingError = document.querySelector('.validation-error');
+    if (existingError) {
+        existingError.remove();
+    }
+    
+    // Create error message
+    var errorDiv = document.createElement('div');
+    errorDiv.className = 'validation-error';
+    errorDiv.innerHTML = '<i class="fa-thin fa-exclamation-triangle"></i> ' + message;
+    
+    // Insert after question description
+    var questionHeader = document.querySelector('.question-header');
+    if (questionHeader) {
+        questionHeader.appendChild(errorDiv);
+    }
+    
+    // Auto-remove after 3 seconds
+    var self = this;
+    setTimeout(function() {
+        if (errorDiv.parentNode) {
+            errorDiv.parentNode.removeChild(errorDiv);
+        }
+    }, 3000);
+};
+
+SurveyManager.prototype.preselectAnswer = function(answerValue) {
+    var currentQuestion = this.questions[this.currentQuestionIndex];
     var confirmBtn = document.getElementById('confirm-btn');
     var checkIcon = document.getElementById('check-icon');
     
-    for (var i = 0; i < answerOptions.length; i++) {
-        if (answerOptions[i].getAttribute('data-answer') === answerLetter) {
-            // Add selected class
-            answerOptions[i].classList.add('selected');
-            
-            // Enable confirm button
-            confirmBtn.disabled = false;
-            
-            // Animate checkmark
-            this.animateCheckmark(checkIcon);
-            
+    switch(currentQuestion.type) {
+        case 'multiple_choice':
+            var answerOptions = document.querySelectorAll('.answer-option');
+            for (var i = 0; i < answerOptions.length; i++) {
+                if (answerOptions[i].getAttribute('data-answer') === answerValue) {
+                    answerOptions[i].classList.add('selected');
+                    confirmBtn.disabled = false;
+                    this.animateCheckmark(checkIcon);
+                    break;
+                }
+            }
             break;
-        }
+        case 'likert_scale':
+            var scaleOptions = document.querySelectorAll('.scale-option');
+            for (var i = 0; i < scaleOptions.length; i++) {
+                if (scaleOptions[i].getAttribute('data-value') === answerValue) {
+                    scaleOptions[i].classList.add('selected');
+                    confirmBtn.disabled = false;
+                    this.animateCheckmark(checkIcon);
+                    break;
+                }
+            }
+            break;
+        case 'yes_no':
+            var yesNoOptions = document.querySelectorAll('.yes-no-option');
+            for (var i = 0; i < yesNoOptions.length; i++) {
+                if (yesNoOptions[i].getAttribute('data-answer') === answerValue) {
+                    yesNoOptions[i].classList.add('selected');
+                    confirmBtn.disabled = false;
+                    this.animateCheckmark(checkIcon);
+                    break;
+                }
+            }
+            break;
+        case 'open_text':
+            var textarea = document.querySelector('.open-text-input');
+            if (textarea) {
+                textarea.value = answerValue;
+                confirmBtn.disabled = currentQuestion.required && answerValue.trim() === '';
+            }
+            break;
     }
 };
 
