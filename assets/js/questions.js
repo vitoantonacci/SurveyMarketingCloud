@@ -26,7 +26,7 @@ var questionsData = {
             id: 1,
             type: "multiple_choice", // multiple_choice | likert_scale | multi_likert | yes_no | open_text
             required: true, // true | false
-            title: "Qual è la tua esperienza con i prodotti digitali?",
+            title: "1. Qual è la tua esperienza con i prodotti digitali?",
             description: "Aiutaci a capire meglio le tue preferenze per migliorare i nostri servizi",
             answers: [
                 {
@@ -50,7 +50,7 @@ var questionsData = {
             id: 2,
             type: "likert_scale",
             required: true,
-            title: "Quanto sei soddisfatto del nostro servizio?",
+            title: "2. Quanto sei soddisfatto del nostro servizio?",
             description: "Valuta la tua soddisfazione generale",
             scale: {
                 min: 1,
@@ -65,14 +65,14 @@ var questionsData = {
             id: 3,
             type: "yes_no",
             required: true,
-            title: "Raccomanderesti il nostro servizio?",
+            title: "3. Raccomanderesti il nostro servizio?",
             description: "La tua opinione è importante per noi"
         },
         {
             id: 4,
             type: "multi_likert",
             required: true,
-            title: "Come valuteresti le borse Guess da 1 a 5 nei seguenti aspetti?",
+            title: "4. Come valuteresti le borse Guess da 1 a 5 nei seguenti aspetti?",
             description: "Valuta ogni aspetto separatamente",
             aspects: [
                 {
@@ -101,7 +101,7 @@ var questionsData = {
             id: 5,
             type: "open_text",
             required: false,
-            title: "Hai suggerimenti per migliorare?",
+            title: "5. Hai suggerimenti per migliorare?",
             description: "Condividi le tue idee e feedback",
             placeholder: "Scrivi qui i tuoi suggerimenti..."
         }

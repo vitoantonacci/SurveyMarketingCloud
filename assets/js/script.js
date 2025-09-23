@@ -130,7 +130,7 @@ SurveyManager.prototype.generateQuestionHTML = function(question) {
         '</div>' : '<div class="progress-container">' +
         '<p class="progress-text">Domanda ' + question.id + ' di ' + this.questions.length + '</p>' +
         '</div>') +
-        '<h1 class="question-title">' + question.id + ' <i class="fa-thin fa-arrow-right"></i> ' + question.title + (question.required ? ' *' : '') + '</h1>' +
+        '<h1 class="question-title">' + question.title + (question.required ? ' *' : '') + '</h1>' +
         '<p class="question-description">' + question.description + (!question.required ? ' (Risposta opzionale)' : '') + '</p>' +
         '</div>' +
         '<!-- Answer Options -->' +
@@ -229,7 +229,7 @@ SurveyManager.prototype.generateMultiLikertHTML = function(question) {
 };
 
 SurveyManager.prototype.generateActionButtonHTML = function(question, showCheckmark) {
-    var buttonText = 'OK';
+    var buttonText = question.id === this.questions.length ? 'INVIA' : 'AVANTI';
     var checkmarkHTML = showCheckmark ? 
         '<div id="check-icon" class="checkmark">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +

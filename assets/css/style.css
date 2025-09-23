@@ -213,7 +213,7 @@ a:hover {
     align-items: center;
     justify-content: center;
     padding: var(--space-2) var(--space-4);
-    border-radius: var(--radius-md);
+    border-radius: 4px;
     font-weight: var(--font-medium);
     font-size: var(--text-sm);
     text-decoration: none;
@@ -396,12 +396,23 @@ a:hover {
 }
 
 .yes-no-option:hover {
-    border-color: var(--primary-color);
-    background-color: var(--gray-50);
+    border-color: var(--primary-300);
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-1px);
 }
 
 .yes-no-option.selected {
     border-color: var(--primary-color);
+    background-color: var(--primary-50);
+    box-shadow: var(--shadow-md);
+}
+
+.yes-no-option:hover .answer-letter {
+    background-color: var(--primary-100);
+    color: var(--primary-color);
+}
+
+.yes-no-option.selected .answer-letter {
     background-color: var(--primary-color);
     color: white;
 }
@@ -593,7 +604,7 @@ a:hover {
     background-color: var(--primary-color) !important;
     font-size: var(--text-lg);
     padding: var(--space-3) var(--space-6);
-    border-radius: var(--border-radius-lg);
+    border-radius: 4px;
     text-transform: none;
     font-weight: var(--font-medium);
     box-shadow: none !important;
@@ -816,10 +827,11 @@ a:hover {
 
 #confirm-btn {
     min-width: 100px;
-    opacity: 0.5;
+    opacity: 0.3;
     cursor: not-allowed;
     transition: all var(--transition-normal);
     background-color: var(--primary-color) !important;
+    color: white !important;
     display: flex;
     align-items: center;
     gap: var(--space-1);
