@@ -6,18 +6,42 @@ function SurveyManager() {
     this.results = [];
     this.surveyContainer = document.getElementById('survey-container');
     this.selectedAnswer = null;
+    this.clientData = {
+        email: null,
+        country: null,
+        language: null,
+        age: null,
+        gender: null
+    };
     
     this.init();
 }
 
 SurveyManager.prototype.init = function() {
     try {
+        this.loadClientData();
         this.loadQuestions();
         this.renderCoverPage();
         this.setupEventListeners();
         this.setupCoverEventListeners();
     } catch (error) {
         console.error('Error initializing survey:', error);
+    }
+};
+
+SurveyManager.prototype.loadClientData = function() {
+    // Parse client data from URL parameters
+    var urlParams = new URLSearchParams(window.location.search);
+    
+    this.clientData.email = urlParams.get('email');
+    this.clientData.country = urlParams.get('Country');
+    this.clientData.language = urlParams.get('Language');
+    this.clientData.age = urlParams.get('age');
+    this.clientData.gender = urlParams.get('gender');
+    
+    // Log client data for debugging
+    if (this.clientData.email || this.clientData.country || this.clientData.language || this.clientData.age || this.clientData.gender) {
+        console.log('Client data loaded:', this.clientData);
     }
 };
 
@@ -753,11 +777,22 @@ SurveyManager.prototype.submitSurveyData = function() {
         params.append('question_' + result.questionId, JSON.stringify(result));
     }
     
+    // Add client data if available
+    if (this.clientData.email) params.append('client_email', this.clientData.email);
+    if (this.clientData.country) params.append('client_country', this.clientData.country);
+    if (this.clientData.language) params.append('client_language', this.clientData.language);
+    if (this.clientData.age) params.append('client_age', this.clientData.age);
+    if (this.clientData.gender) params.append('client_gender', this.clientData.gender);
+    
     // Add total questions count
     params.append('total_questions', this.questions.length);
     
     // Add completion timestamp
     params.append('completed_at', new Date().toISOString());
+    
+    // In a real production scenario, this would be replaced with actual API call error handling
+    // For now, we assume successful submission unless an actual error occurs
+    // Example: if (apiCallFailed) { params.append('error', 'true'); params.append('error_message', 'Errore di connessione al server'); }
     
     // Redirect to thank you page with data
     window.location.href = 'thankyou.html?' + params.toString();

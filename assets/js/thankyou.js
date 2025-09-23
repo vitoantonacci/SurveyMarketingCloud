@@ -9,8 +9,8 @@ function ThankYouManager() {
 
 ThankYouManager.prototype.init = function() {
     try {
-        this.loadThankYouData();
         this.loadSurveyData();
+        this.loadThankYouData();
         this.renderThankYouPage();
         this.setupEventListeners();
     } catch (error) {
@@ -24,8 +24,13 @@ ThankYouManager.prototype.loadThankYouData = function() {
         console.error('questionsData is not defined. Make sure questions.js is loaded before thankyou.js');
         return;
     }
-        
-    this.thankYouData = questionsData.thankyou;
+    
+    // Check if we have an error and load appropriate data
+    if (this.surveyData && this.surveyData.hasError) {
+        this.thankYouData = questionsData.error;
+    } else {
+        this.thankYouData = questionsData.thankyou;
+    }
 };
 
 ThankYouManager.prototype.loadSurveyData = function() {
@@ -41,11 +46,28 @@ ThankYouManager.prototype.parseSurveyData = function() {
     var surveyData = {
         results: [],
         totalQuestions: 0,
-        completedAt: null
+        completedAt: null,
+        hasError: false,
+        errorMessage: null,
+        clientData: {
+            email: null,
+            country: null,
+            language: null,
+            age: null,
+            gender: null
+        }
     };
     
     // Try to get data from URL parameters (for GET requests)
     var urlParams = new URLSearchParams(window.location.search);
+    
+    // Check for error parameters FIRST
+    if (urlParams.get('error') === 'true') {
+        surveyData.hasError = true;
+        surveyData.errorMessage = urlParams.get('error_message') || 'Errore sconosciuto';
+        // Return immediately if there's an error, even without survey data
+        return surveyData;
+    }
     
     // Check if we have survey data in URL parameters
     var hasData = false;
@@ -62,20 +84,41 @@ ThankYouManager.prototype.parseSurveyData = function() {
         }
     }
     
+    // Parse client data from URL parameters
+    surveyData.clientData.email = urlParams.get('client_email');
+    surveyData.clientData.country = urlParams.get('client_country');
+    surveyData.clientData.language = urlParams.get('client_language');
+    surveyData.clientData.age = urlParams.get('client_age');
+    surveyData.clientData.gender = urlParams.get('client_gender');
+    
     if (hasData) {
         surveyData.totalQuestions = parseInt(urlParams.get('total_questions')) || surveyData.results.length;
         surveyData.completedAt = urlParams.get('completed_at') || new Date().toISOString();
     }
     
-    return hasData ? surveyData : null;
+    // Return surveyData if we have data OR if there's an error OR if we have client data
+    return (hasData || surveyData.hasError || surveyData.clientData.email || surveyData.clientData.country || surveyData.clientData.language || surveyData.clientData.age || surveyData.clientData.gender) ? surveyData : null;
 };
 
 ThankYouManager.prototype.renderThankYouPage = function() {
     if (!this.coverWrapper || !this.thankYouData) return;
     
     var surveySummary = '';
+    var errorMessage = '';
+    var clientDataSummary = '';
+    
     if (this.surveyData && this.surveyData.results.length > 0) {
         surveySummary = this.generateSurveySummary();
+    }
+    
+    // Client data will be included in the survey summary box
+    
+    // Add error message if there's an error
+    if (this.surveyData && this.surveyData.hasError) {
+        errorMessage = '<div style="margin: 20px 0; padding: 15px; background: #ffebee; border-radius: 8px; border-left: 4px solid #f44336;">' +
+            '<p style="margin: 0; color: #c62828; font-size: 14px;"><strong>Dettagli errore:</strong> ' + 
+            (this.surveyData.errorMessage || 'Errore sconosciuto') + '</p>' +
+            '</div>';
     }
     
     this.coverWrapper.innerHTML = '<div class="cover-container">' +
@@ -85,8 +128,10 @@ ThankYouManager.prototype.renderThankYouPage = function() {
         '</div>' +
         '<h1 class="cover-title">' + this.thankYouData.title + '</h1>' +
         '<p class="cover-description">' + this.thankYouData.description + '</p>' +
+        errorMessage +
         surveySummary +
-        '<a href="' + this.thankYouData.buttonUrl + '" class="btn waves-effect waves-light cover-btn" target="_blank">' +
+        '<a href="' + this.thankYouData.buttonUrl + '" class="btn waves-effect waves-light cover-btn"' + 
+        (this.surveyData && this.surveyData.hasError ? '' : ' target="_blank"') + '>' +
         this.thankYouData.buttonText +
         '</a>' +
         '</div>' +
@@ -96,11 +141,41 @@ ThankYouManager.prototype.renderThankYouPage = function() {
         '</div>';
 };
 
+
 ThankYouManager.prototype.generateSurveySummary = function() {
+    // Don't show summary if there's an error
+    if (this.surveyData && this.surveyData.hasError) return '';
+    
     if (!this.surveyData || !this.surveyData.results.length) return '';
     
     var summary = '<div class="survey-summary" style="display: none; margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #288749;">';
     summary += '<h3 style="margin: 0 0 15px 0; color: #1d1d1d; font-size: 18px;">Riepilogo delle tue risposte:</h3>';
+    
+    // Add client data section if available
+    if (this.surveyData.clientData && (this.surveyData.clientData.email || this.surveyData.clientData.country || this.surveyData.clientData.language || this.surveyData.clientData.age || this.surveyData.clientData.gender)) {
+        summary += '<div style="margin-bottom: 20px; padding: 15px; background: #e3f2fd; border-radius: 6px; border-left: 3px solid #2196f3;">';
+        summary += '<h4 style="margin: 0 0 10px 0; color: #1d1d1d; font-size: 16px;">Dati Cliente:</h4>';
+        summary += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 14px;">';
+        
+        if (this.surveyData.clientData.email) {
+            summary += '<div><strong>Email:</strong> ' + this.surveyData.clientData.email + '</div>';
+        }
+        if (this.surveyData.clientData.country) {
+            summary += '<div><strong>Paese:</strong> ' + this.surveyData.clientData.country + '</div>';
+        }
+        if (this.surveyData.clientData.language) {
+            summary += '<div><strong>Lingua:</strong> ' + this.surveyData.clientData.language + '</div>';
+        }
+        if (this.surveyData.clientData.age) {
+            summary += '<div><strong>Età:</strong> ' + this.surveyData.clientData.age + '</div>';
+        }
+        if (this.surveyData.clientData.gender) {
+            summary += '<div><strong>Genere:</strong> ' + this.surveyData.clientData.gender + '</div>';
+        }
+        
+        summary += '</div>';
+        summary += '</div>';
+    }
     
     // Create scrollable container with fixed height
     summary += '<div id="answers-container" style="height: 150px; overflow-y: auto; position: relative; margin-bottom: 15px; transition: height 0.3s ease-in-out;">';

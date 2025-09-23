@@ -1,5 +1,5 @@
 // Questions data for Survey Marketing Cloud
-
+//?email=%%=v(@CustomerEmail)=%%&Country=%%=v(@country)=%%&Language=%%=v(@language)=%%&age=%%=v(@ageCluster)=%%&gender=%%=v(@gender)=%%
 var questionsData = {
     cover: {
         title: "Scopri le tue preferenze digitali",
@@ -12,6 +12,13 @@ var questionsData = {
         description: "La tua opinione è preziosa per noi e ci aiuterà a migliorare continuamente i nostri prodotti e servizi. Grazie per aver dedicato il tuo tempo a questo survey.",
         buttonText: "Visita Guess.eu",
         buttonUrl: "https://www.guess.eu",
+        imageUrl: "https://images.typeform.com/images/RMtyJ36PEuNA/image/default-firstframe.png"
+    },
+    error: {
+        title: "Ops! Qualcosa è andato storto",
+        description: "Ci dispiace, ma si è verificato un problema tecnico durante l'invio delle tue risposte. Non preoccuparti, le tue risposte sono state salvate localmente e puoi riprovare.",
+        buttonText: "Riprova il sondaggio",
+        buttonUrl: "survey.html",
         imageUrl: "https://images.typeform.com/images/RMtyJ36PEuNA/image/default-firstframe.png"
     },
     questions: [
@@ -57,7 +64,7 @@ var questionsData = {
         {
             id: 3,
             type: "yes_no",
-            required: false,
+            required: true,
             title: "Raccomanderesti il nostro servizio?",
             description: "La tua opinione è importante per noi"
         },
@@ -93,7 +100,7 @@ var questionsData = {
         {
             id: 5,
             type: "open_text",
-            required: true,
+            required: false,
             title: "Hai suggerimenti per migliorare?",
             description: "Condividi le tue idee e feedback",
             placeholder: "Scrivi qui i tuoi suggerimenti..."
