@@ -1214,6 +1214,30 @@ body, .question-builder, .questions-list, .modal-content {
     margin: 0 0 8px 0 !important;
 }
 
+/* ===== PREVIEW ANSWERS ===== */
+.preview-answers {
+    margin-top: var(--space-2);
+    padding: var(--space-2);
+    background: var(--gray-100);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--primary-color);
+}
+
+.preview-answer {
+    font-size: var(--text-sm);
+    color: var(--gray-600);
+    margin: 0 0 var(--space-1) 0;
+    line-height: 1.4;
+}
+
+.preview-answer:last-child {
+    margin-bottom: 0;
+}
+
+.preview-answer:first-child {
+    margin-top: 0;
+}
+
 .question-info p {
     margin: 0 0 12px 0 !important;
 }

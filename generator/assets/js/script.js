@@ -1107,51 +1107,49 @@ class SurveyGenerator {
     }
     
     updateQuestionsList() {
-        const container = document.getElementById('questions-container');
+        var container = document.getElementById('questions-container');
         
         if (this.questions.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-question-circle"></i>
-                    <h3>Nessuna domanda configurata</h3>
-                    <p>Aggiungi la tua prima domanda per iniziare</p>
-                </div>
-            `;
+            container.innerHTML = '<div class="empty-state">' +
+                '<i class="fas fa-question-circle"></i>' +
+                '<h3>Nessuna domanda configurata</h3>' +
+                '<p>Aggiungi la tua prima domanda per iniziare</p>' +
+                '</div>';
             return;
         }
         
-        container.innerHTML = this.questions.map((question, index) => `
-            <div class="question-item">
-                <div class="question-header">
-                    <div class="question-info">
-                        <h4>${question.title}</h4>
-                        <p>${question.description || 'Nessuna descrizione'}</p>
-                        <div class="question-meta">
-                            <span>${this.getTypeLabel(question.type)}</span>
-                            <span>${question.required ? 'Obbligatoria' : 'Opzionale'}</span>
-                        </div>
-                    </div>
-                    <div class="question-actions">
-                        <button class="move-up-btn" onclick="generator.moveQuestion(${index}, 'up')" ${index === 0 ? 'disabled' : ''}>
-                            <i class="fas fa-arrow-up"></i>
-                        </button>
-                        <button class="move-down-btn" onclick="generator.moveQuestion(${index}, 'down')" ${index === this.questions.length - 1 ? 'disabled' : ''}>
-                            <i class="fas fa-arrow-down"></i>
-                        </button>
-                        <button class="edit-question-btn" onclick="generator.editQuestion(${index})">
-                            <i class="fas fa-edit"></i> Modifica
-                        </button>
-                        <button class="remove-question-btn" onclick="generator.removeQuestion(${index})">
-                            <i class="fas fa-trash"></i> Rimuovi
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `).join('');
+        var self = this;
+        var questionsHTML = this.questions.map(function(question, index) {
+            return '<div class="question-item">' +
+                '<div class="question-header">' +
+                '<div class="question-info">' +
+                '<h4>' + question.title + (question.required ? ' *' : '') + '</h4>' +
+                '<p>' + (question.description || 'Nessuna descrizione') + '</p>' +
+                self.generateAnswersPreview(question) +
+                '</div>' +
+                '<div class="question-actions">' +
+                '<button class="move-up-btn" onclick="generator.moveQuestion(' + index + ', \'up\')"' + (index === 0 ? ' disabled' : '') + '>' +
+                '<i class="fas fa-arrow-up"></i>' +
+                '</button>' +
+                '<button class="move-down-btn" onclick="generator.moveQuestion(' + index + ', \'down\')"' + (index === self.questions.length - 1 ? ' disabled' : '') + '>' +
+                '<i class="fas fa-arrow-down"></i>' +
+                '</button>' +
+                '<button class="edit-question-btn" onclick="generator.editQuestion(' + index + ')">' +
+                '<i class="fas fa-edit"></i> Modifica' +
+                '</button>' +
+                '<button class="remove-question-btn" onclick="generator.removeQuestion(' + index + ')">' +
+                '<i class="fas fa-trash"></i> Rimuovi' +
+                '</button>' +
+                '</div>' +
+                '</div>' +
+                '</div>';
+        }).join('');
+        
+        container.innerHTML = questionsHTML;
     }
     
     getTypeLabel(type) {
-        const labels = {
+        var labels = {
             'single_choice': 'Scelta Singola',
             'multiple_choice': 'Scelta Multipla',
             'likert_scale': 'Scala Likert',
@@ -1161,9 +1159,46 @@ class SurveyGenerator {
         };
         return labels[type] || type;
     }
+
+    generateAnswersPreview(question) {
+        switch(question.type) {
+            case 'single_choice':
+            case 'multiple_choice':
+            case 'yes_no':
+                if (question.answers && question.answers.length > 0) {
+                    var answersList = question.answers.map(function(answer, index) {
+                        var letter = String.fromCharCode(65 + index);
+                        return '<div class="preview-answer">' + letter + '. ' + answer.text + '</div>';
+                    }).join('');
+                    return '<div class="preview-answers">' + answersList + '</div>';
+                }
+                return '<div class="preview-answers"><div class="preview-answer">Nessuna risposta configurata</div></div>';
+                
+            case 'likert_scale':
+                if (question.scale) {
+                    return '<div class="preview-answers"><div class="preview-answer">Scala da ' + question.scale.min + ' a ' + question.scale.max + '</div></div>';
+                }
+                return '<div class="preview-answers"><div class="preview-answer">Scala non configurata</div></div>';
+                
+            case 'multi_likert':
+                if (question.aspects && question.aspects.length > 0) {
+                    var aspectsList = question.aspects.map(function(aspect) {
+                        return '<div class="preview-answer">• ' + aspect.text + '</div>';
+                    }).join('');
+                    return '<div class="preview-answers">' + aspectsList + '</div>';
+                }
+                return '<div class="preview-answers"><div class="preview-answer">Nessun aspetto configurato</div></div>';
+                
+            case 'open_text':
+                return '<div class="preview-answers"><div class="preview-answer">Campo di testo libero</div></div>';
+                
+            default:
+                return '<div class="preview-answers"><div class="preview-answer">Tipo non riconosciuto</div></div>';
+        }
+    }
     
     updateActionButtons() {
-        const hasQuestions = this.questions.length > 0;
+        var hasQuestions = this.questions.length > 0;
         document.getElementById('export-btn').disabled = !hasQuestions;
         document.getElementById('clear-all-btn').disabled = !hasQuestions;
     }
