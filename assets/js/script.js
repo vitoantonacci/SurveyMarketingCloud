@@ -16,8 +16,8 @@ var ConditionalLogic = {
         var question = questions[idx];
         var nextId = null;
         
-        // Priority 1: For multiple_choice/yes_no, check answer.goto
-        if ((question.type === 'multiple_choice' || question.type === 'yes_no') && 
+        // Priority 1: For single_choice/yes_no, check answer.goto
+        if ((question.type === 'single_choice' || question.type === 'yes_no') && 
             question.answers && answer) {
             for (var i = 0; i < question.answers.length; i++) {
                 var ans = question.answers[i];
@@ -172,43 +172,75 @@ SurveyManager.prototype.loadQuestions = function() {
 };
 
 SurveyManager.prototype.calculateTotalQuestionsShown = function() {
-    // Simulate the conditional flow to count total questions that will be shown
-    var visited = {};
-    var count = 0;
-    var currentIndex = 0;
+    // Start with a reasonable estimate, will be updated dynamically
+    return this.questions.length;
+};
+
+SurveyManager.prototype.updateTotalQuestionsShown = function() {
+    // Check if there are any conditional logics in the questions
+    var hasConditionalLogic = this.hasConditionalLogic();
     
-    while (currentIndex < this.questions.length && !visited[currentIndex]) {
-        visited[currentIndex] = true;
-        count++;
+    if (hasConditionalLogic) {
+        // Hide progress line and question counter for conditional logic
+        this.hideProgressElements();
+    } else {
+        // Show progress line and question counter for simple surveys
+        this.totalQuestionsShown = this.questions.length;
+        this.showProgressElements();
+        this.updateProgressBar();
+    }
+};
+
+SurveyManager.prototype.hasConditionalLogic = function() {
+    for (var i = 0; i < this.questions.length; i++) {
+        var question = this.questions[i];
         
-        var question = this.questions[currentIndex];
-        var nextId = null;
-        
-        // Simulate answer selection for different question types
-        var simulatedAnswer = this.getSimulatedAnswer(question);
-        
-        // Calculate next question using conditional logic
-        nextId = ConditionalLogic.getNextId(this.questions, currentIndex, simulatedAnswer, currentIndex);
-        
-        if (nextId === null) {
-            break; // End of survey
+        // Check for goto in answers (single_choice, yes_no)
+        if (question.answers) {
+            for (var j = 0; j < question.answers.length; j++) {
+                if (question.answers[j].goto && question.answers[j].goto !== "") {
+                    return true;
+                }
+            }
         }
         
-        var nextIndex = this.questionIndex[nextId];
-        if (nextIndex === undefined) {
-            break; // Invalid next question
+        // Check for logic rules (likert_scale, multi_likert)
+        if (question.logic && question.logic.length > 0) {
+            return true;
         }
-        
-        currentIndex = nextIndex;
     }
     
-    return count;
+    return false;
+};
+
+SurveyManager.prototype.hideProgressElements = function() {
+    var progressContainer = document.querySelector('.progress-container');
+    var progressBar = document.querySelector('.progress-bar');
+    
+    if (progressContainer) {
+        progressContainer.style.display = 'none';
+    }
+    if (progressBar) {
+        progressBar.style.display = 'none';
+    }
+};
+
+SurveyManager.prototype.showProgressElements = function() {
+    var progressContainer = document.querySelector('.progress-container');
+    var progressBar = document.querySelector('.progress-bar');
+    
+    if (progressContainer) {
+        progressContainer.style.display = 'block';
+    }
+    if (progressBar) {
+        progressBar.style.display = 'block';
+    }
 };
 
 SurveyManager.prototype.getSimulatedAnswer = function(question) {
     // Return a simulated answer for calculation purposes
     switch (question.type) {
-        case 'multiple_choice':
+        case 'single_choice':
         case 'yes_no':
             if (question.answers && question.answers.length > 0) {
                 // Try to find an answer with goto="" for default behavior
@@ -277,9 +309,13 @@ SurveyManager.prototype.generateQuestionHTML = function(question) {
     
     // Generate different UI based on question type
     switch(question.type) {
-        case 'multiple_choice':
+        case 'single_choice':
             answersHTML = this.generateMultipleChoiceHTML(question);
             actionButtonHTML = this.generateActionButtonHTML(question, true);
+            break;
+        case 'multiple_choice':
+            answersHTML = this.generateMultipleChoiceHTML(question);
+            actionButtonHTML = this.generateActionButtonHTML(question, false); // No auto-advance for multiple choice
             break;
         case 'likert_scale':
             answersHTML = this.generateLikertScaleHTML(question);
@@ -302,17 +338,36 @@ SurveyManager.prototype.generateQuestionHTML = function(question) {
             actionButtonHTML = this.generateActionButtonHTML(question, true);
     }
 
-    return '<div class="question-block" data-qid="' + question.id + '">' +
-        '<!-- Question Header -->' +
-        '<div class="question-header">' +
-        (this.currentQuestionNumber > 1 ? '<div class="progress-container" id="back-btn">' +
+    // Check if we should show progress elements
+    var hasConditionalLogic = this.hasConditionalLogic();
+    var progressHTML = '';
+    
+    if (!hasConditionalLogic) {
+        // Show progress line only if no conditional logic
+        progressHTML = (this.currentQuestionNumber > 1 ? '<div class="progress-container" id="back-btn">' +
         '<p class="progress-text">' +
         '<i class="fa-thin fa-arrow-left back-arrow"></i>' +
         'Domanda ' + this.currentQuestionNumber + ' di ' + this.totalQuestionsShown +
         '</p>' +
         '</div>' : '<div class="progress-container">' +
         '<p class="progress-text">Domanda ' + this.currentQuestionNumber + ' di ' + this.totalQuestionsShown + '</p>' +
-        '</div>') +
+        '</div>');
+    } else {
+        // Show only back button if conditional logic exists (but only if not first question)
+        if (this.currentQuestionNumber > 1) {
+            progressHTML = '<div class="progress-container" id="back-btn">' +
+            '<p class="progress-text">' +
+            '<i class="fa-thin fa-arrow-left back-arrow"></i>' +
+            'Indietro' +
+            '</p>' +
+            '</div>';
+        }
+    }
+
+    return '<div class="question-block" data-qid="' + question.id + '">' +
+        '<!-- Question Header -->' +
+        '<div class="question-header">' +
+        progressHTML +
         '<h1 class="question-title">' + this.currentQuestionNumber + '. ' + question.title + (question.required ? ' *' : '') + '</h1>' +
         '<p class="question-description">' + question.description + (!question.required ? ' (Risposta opzionale)' : '') + '</p>' +
         '</div>' +
@@ -332,10 +387,25 @@ SurveyManager.prototype.generateMultipleChoiceHTML = function(question) {
     for (var i = 0; i < question.answers.length; i++) {
         var answer = question.answers[i];
         var letter = String.fromCharCode(65 + i); // A, B, C, D, E...
-        answersHTML += '<div class="answer-option" data-answer="' + letter + '">' +
-            '<div class="answer-letter">' + letter + '</div>' +
-            '<div class="answer-text">' + answer.text + '</div>' +
-            '</div>';
+        
+        if (question.type === 'multiple_choice') {
+            // For multiple choice, use checkbox
+            answersHTML += '<div class="answer-option checkbox-option" data-answer="' + letter + '" onclick="this.querySelector(\'.answer-checkbox\').click()">' +
+                '<div class="answer-letter">' + letter + '</div>' +
+                '<div class="checkbox-container">' +
+                '<input type="checkbox" id="answer-' + letter + '" class="answer-checkbox">' +
+                '<div class="checkbox-label">' +
+                '<div class="answer-text">' + answer.text + '</div>' +
+                '</div>' +
+                '</div>' +
+                '</div>';
+        } else {
+            // For single choice, use radio-style
+            answersHTML += '<div class="answer-option" data-answer="' + letter + '">' +
+                '<div class="answer-letter">' + letter + '</div>' +
+                '<div class="answer-text">' + answer.text + '</div>' +
+                '</div>';
+        }
     }
     return answersHTML;
 };
@@ -445,6 +515,11 @@ SurveyManager.prototype.generateActionButtonHTML = function(question, showCheckm
 };
 
 SurveyManager.prototype.updateProgressBar = function(question) {
+    // Don't update progress bar if there's conditional logic
+    if (this.hasConditionalLogic()) {
+        return;
+    }
+    
     var progressBar = document.querySelector('.progress-indicator');
     var progressFill = document.querySelector('.progress-fill');
     
@@ -472,6 +547,7 @@ SurveyManager.prototype.setupQuestionEventListeners = function() {
 
     // Handle different question types
     switch(currentQuestion.type) {
+        case 'single_choice':
         case 'multiple_choice':
             this.setupMultipleChoiceListeners(confirmBtn);
             break;
@@ -507,11 +583,23 @@ SurveyManager.prototype.setupMultipleChoiceListeners = function(confirmBtn) {
     var answerOptions = document.querySelectorAll('.answer-option');
     var checkIcon = document.getElementById('check-icon');
     var self = this;
+    var currentQuestion = this.questions[this.currentQuestionIndex];
 
     for (var i = 0; i < answerOptions.length; i++) {
-        answerOptions[i].addEventListener('click', function() {
-            self.handleAnswerSelection(this, answerOptions, confirmBtn, checkIcon);
-        });
+        if (currentQuestion.type === 'multiple_choice') {
+            // For multiple choice, handle checkbox clicks
+            var checkbox = answerOptions[i].querySelector('.answer-checkbox');
+            if (checkbox) {
+                checkbox.addEventListener('change', function() {
+                    self.handleMultipleChoiceSelection(this, answerOptions, confirmBtn, checkIcon);
+                });
+            }
+        } else {
+            // For single choice, handle option clicks
+            answerOptions[i].addEventListener('click', function() {
+                self.handleAnswerSelection(this, answerOptions, confirmBtn, checkIcon);
+            });
+        }
     }
 };
 
@@ -846,6 +934,10 @@ SurveyManager.prototype.handleConfirmClick = function() {
             this.currentQuestionNumber++; // Increment sequential number
             this.questionPath.push(nextIndex); // Track the path
             this.selectedAnswer = null;
+            
+            // Update total questions shown dynamically
+            this.updateTotalQuestionsShown();
+            
             this.renderCurrentQuestion();
         } else {
             console.error('Next question not found:', nextQuestionId);
@@ -907,6 +999,9 @@ SurveyManager.prototype.handleBackClick = function() {
             self.currentQuestionIndex = previousIndex;
             self.selectedAnswer = previousAnswer ? previousAnswer.answer : null;
             
+            // Update total questions shown dynamically
+            self.updateTotalQuestionsShown();
+            
             // Reset container styles
             self.surveyContainer.style.transition = 'opacity 0.4s ease-out, transform 0.4s ease-out';
             self.surveyContainer.style.transform = 'translateY(-20px)';
@@ -961,7 +1056,7 @@ SurveyManager.prototype.preselectAnswer = function(answerValue) {
     var checkIcon = document.getElementById('check-icon');
     
     switch(currentQuestion.type) {
-        case 'multiple_choice':
+        case 'single_choice':
             var answerOptions = document.querySelectorAll('.answer-option');
             for (var i = 0; i < answerOptions.length; i++) {
                 var dataAnswer = answerOptions[i].getAttribute('data-answer');
@@ -975,6 +1070,27 @@ SurveyManager.prototype.preselectAnswer = function(answerValue) {
                     this.animateCheckmark(checkIcon);
                     break;
                 }
+            }
+            break;
+        case 'multiple_choice':
+            var answerOptions = document.querySelectorAll('.answer-option');
+            if (Array.isArray(answerValue)) {
+                // Handle multiple selected answers
+                for (var i = 0; i < answerOptions.length; i++) {
+                    var dataAnswer = answerOptions[i].getAttribute('data-answer');
+                    var answerIndex = parseInt(dataAnswer.charCodeAt(0) - 65);
+                    var answerId = currentQuestion.answers && currentQuestion.answers[answerIndex] ? 
+                        currentQuestion.answers[answerIndex].id : dataAnswer;
+                    
+                    if (answerValue.indexOf(answerId) !== -1 || answerValue.indexOf(dataAnswer) !== -1) {
+                        var checkbox = answerOptions[i].querySelector('.answer-checkbox');
+                        if (checkbox) {
+                            checkbox.checked = true;
+                        }
+                    }
+                }
+                confirmBtn.disabled = false;
+                this.animateCheckmark(checkIcon);
             }
             break;
         case 'likert_scale':
@@ -1091,6 +1207,45 @@ SurveyManager.prototype.startSurvey = function() {
         surveyWrapper.style.display = 'flex';
         self.renderCurrentQuestion();
     }, 300); // Match CSS transition duration
+};
+
+SurveyManager.prototype.handleMultipleChoiceSelection = function(checkbox, allOptions, confirmBtn, checkIcon) {
+    var currentQuestion = this.questions[this.currentQuestionIndex];
+    var selectedAnswers = [];
+    
+    // Collect all selected answers and update visual state
+    for (var i = 0; i < allOptions.length; i++) {
+        var optionCheckbox = allOptions[i].querySelector('.answer-checkbox');
+        if (optionCheckbox && optionCheckbox.checked) {
+            // Add selected class for visual feedback
+            allOptions[i].classList.add('selected');
+            
+            var selectedAnswer = allOptions[i].getAttribute('data-answer');
+            var answerIndex = parseInt(selectedAnswer.charCodeAt(0) - 65);
+            var answerId = currentQuestion.answers && currentQuestion.answers[answerIndex] ? 
+                currentQuestion.answers[answerIndex].id : selectedAnswer;
+            selectedAnswers.push(answerId || selectedAnswer);
+        } else {
+            // Remove selected class if unchecked
+            allOptions[i].classList.remove('selected');
+        }
+    }
+    
+    // Store the selected answers
+    this.selectedAnswer = selectedAnswers;
+    
+    // Enable confirm button if at least one answer is selected
+    if (selectedAnswers.length > 0) {
+        confirmBtn.disabled = false;
+        if (checkIcon) {
+            checkIcon.style.display = 'block';
+        }
+    } else {
+        confirmBtn.disabled = true;
+        if (checkIcon) {
+            checkIcon.style.display = 'none';
+        }
+    }
 };
 
 // Initialize the survey when DOM is loaded

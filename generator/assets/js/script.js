@@ -128,6 +128,13 @@ class SurveyGenerator {
     initializeTemplates() {
         return {
             // Default configurations for each question type
+            single_choice: {
+                default: [
+                    { text: 'Opzione 1' },
+                    { text: 'Opzione 2' },
+                    { text: 'Opzione 3' }
+                ]
+            },
             multiple_choice: {
                 default: [
                     { text: 'Opzione 1' },
@@ -289,13 +296,13 @@ class SurveyGenerator {
             return;
         }
         
-        // Show answers section for multiple_choice
-        if (value === 'multiple_choice') {
+        // Show answers section for single_choice and multiple_choice
+        if (value === 'single_choice' || value === 'multiple_choice') {
             answersSection.style.display = 'block';
             answersContainer.innerHTML = '';
             
             // Add default answers
-            const defaultAnswers = this.templates.multiple_choice.default;
+            const defaultAnswers = this.templates[value].default;
             defaultAnswers.forEach(answer => {
                 this.addAnswerField(answer.text);
             });
@@ -338,7 +345,7 @@ class SurveyGenerator {
         const conditionalLogicEnabled = document.getElementById('enable-conditional-logic').checked;
         const questionType = document.getElementById('question-template').value;
         
-        if (conditionalLogicEnabled && (questionType === 'multiple_choice' || questionType === 'yes_no')) {
+        if (conditionalLogicEnabled && (questionType === 'single_choice' || questionType === 'yes_no')) {
             answerDiv.className = 'answer-item with-goto';
             const destinationSelect = this.createQuestionDropdown();
             
@@ -374,7 +381,7 @@ class SurveyGenerator {
         container.appendChild(answerDiv);
         
         // Initialize Materialize components for the new select
-        if (conditionalLogicEnabled && (questionType === 'multiple_choice' || questionType === 'yes_no')) {
+        if (conditionalLogicEnabled && (questionType === 'single_choice' || questionType === 'yes_no')) {
             const select = answerDiv.querySelector('select');
             if (select) {
                 M.FormSelect.init(select);
@@ -386,7 +393,7 @@ class SurveyGenerator {
         const questionType = document.getElementById('question-template').value;
         const conditionalLogicEnabled = document.getElementById('enable-conditional-logic').checked;
         
-        if (questionType === 'multiple_choice' || questionType === 'yes_no') {
+        if (questionType === 'single_choice' || questionType === 'yes_no' || questionType === 'multiple_choice') {
             const answerItems = document.querySelectorAll('#answers-container .answer-item');
             answerItems.forEach((item) => {
                 const input = item.querySelector('input[type="text"]');
@@ -411,7 +418,7 @@ class SurveyGenerator {
     
     updateGotoFields() {
         const questionType = document.getElementById('question-template').value;
-        if (questionType === 'multiple_choice') {
+        if (questionType === 'single_choice') {
             // Clear existing goto fields
             const container = document.getElementById('goto-container');
             const helperText = container.querySelector('.helper-text');
@@ -463,8 +470,8 @@ class SurveyGenerator {
             conditionalFields.style.display = 'block';
             this.setupConditionalFields(questionType);
             
-            // Show helper text for answers if it's multiple choice or yes/no
-            if (questionType === 'multiple_choice' || questionType === 'yes_no') {
+            // Show helper text for answers if it's single choice or yes/no
+            if (questionType === 'single_choice' || questionType === 'yes_no') {
                 if (answersHelperText) {
                     answersHelperText.style.display = 'block';
                 }
@@ -490,13 +497,14 @@ class SurveyGenerator {
         logicRulesSection.style.display = 'none';
         
         // Show appropriate sections based on question type
-        if (questionType === 'multiple_choice' || questionType === 'yes_no') {
-            // For multiple choice and yes/no, we don't need the goto-section anymore
+        if (questionType === 'single_choice' || questionType === 'yes_no') {
+            // For single choice and yes/no, we don't need the goto-section anymore
             // since the dropdowns are now integrated in the answers section
             gotoSection.style.display = 'none';
         } else if (questionType === 'likert_scale' || questionType === 'multi_likert') {
             logicRulesSection.style.display = 'block';
         }
+        // Note: multiple_choice does not support conditional logic (uses continue button)
         // Note: open_text does not support conditional logic
     }
     
@@ -513,7 +521,7 @@ class SurveyGenerator {
         `;
         container.appendChild(helperText);
         
-        if (questionType === 'multiple_choice') {
+        if (questionType === 'single_choice') {
             // Get current answers and create goto fields
             const answerInputs = document.querySelectorAll('#answers-container .answer-item input');
             answerInputs.forEach((input, index) => {
@@ -712,7 +720,15 @@ class SurveyGenerator {
         };
         
         // Add type-specific data
-        if (type === 'multiple_choice') {
+        if (type === 'single_choice') {
+            const answers = this.getMultipleChoiceAnswers();
+            if (answers.length === 0) {
+                this.showSectionError('answers-section', 'Aggiungi almeno una risposta');
+                hasErrors = true;
+            } else {
+                question.answers = answers;
+            }
+        } else if (type === 'multiple_choice') {
             const answers = this.getMultipleChoiceAnswers();
             if (answers.length === 0) {
                 this.showSectionError('answers-section', 'Aggiungi almeno una risposta');
@@ -738,7 +754,7 @@ class SurveyGenerator {
         // Add conditional logic data
         const conditionalLogicEnabled = document.getElementById('enable-conditional-logic').checked;
         if (conditionalLogicEnabled) {
-            if (type === 'multiple_choice' || type === 'yes_no') {
+            if (type === 'single_choice' || type === 'yes_no') {
                 const gotoData = this.getGotoData();
                 if (gotoData) {
                     question.answers = gotoData;
@@ -749,6 +765,7 @@ class SurveyGenerator {
                     question.logic = logicData;
                 }
             }
+            // Note: multiple_choice does not support conditional logic
         }
         
         if (hasErrors) {
@@ -1135,6 +1152,7 @@ class SurveyGenerator {
     
     getTypeLabel(type) {
         const labels = {
+            'single_choice': 'Scelta Singola',
             'multiple_choice': 'Scelta Multipla',
             'likert_scale': 'Scala Likert',
             'yes_no': 'Sì/No',
@@ -1170,12 +1188,14 @@ class SurveyGenerator {
         this.handleQuestionTemplateChange(question.type);
         
         // Load answers if applicable
-        if (question.type === 'multiple_choice' && question.answers) {
+        if ((question.type === 'single_choice' || question.type === 'multiple_choice') && question.answers) {
             const container = document.getElementById('answers-container');
             container.innerHTML = '';
             
-            // Store the goto data for later use
-            this.tempGotoData = question.answers;
+            // Store the goto data for later use (only for single_choice)
+            if (question.type === 'single_choice') {
+                this.tempGotoData = question.answers;
+            }
             
             question.answers.forEach(answer => {
                 this.addAnswerField(answer.text);
@@ -1193,7 +1213,7 @@ class SurveyGenerator {
         
         // Load conditional logic if present
         if (question.answers && question.answers.some(ans => ans.goto !== undefined)) {
-            // This is a multiple_choice or yes_no with goto data
+            // This is a single_choice or yes_no with goto data
             document.getElementById('enable-conditional-logic').checked = true;
             this.handleConditionalLogicToggle(true);
             // Clear temp data after use
@@ -1201,11 +1221,12 @@ class SurveyGenerator {
                 this.tempGotoData = null;
             }, 100);
         } else if (question.logic && question.logic.length > 0) {
-            // This is a likert_scale, multi_likert, or open_text with logic data
+            // This is a likert_scale or multi_likert with logic data
             document.getElementById('enable-conditional-logic').checked = true;
             this.handleConditionalLogicToggle(true);
             this.loadLogicData(question.logic);
         }
+        // Note: multiple_choice does not support conditional logic
         
         // Update states for dynamic inputs
         setTimeout(() => {

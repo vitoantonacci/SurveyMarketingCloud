@@ -25,7 +25,7 @@ var questionsData = {
     questions: [
         {
             id: "q1a2b3c4",
-            type: "multiple_choice",
+            type: "single_choice",
             required: true,
             title: "Qual è la tua esperienza con i prodotti digitali?",
             description: "Aiutaci a capire meglio le tue preferenze per migliorare i nostri servizi",
@@ -77,6 +77,20 @@ var questionsData = {
         },
         {
             id:"q5m4n5o6",
+            type:"multiple_choice",
+            required:true,
+            title:"Quali caratteristiche apprezzi di più nei nostri prodotti?",
+            description:"Seleziona tutte le opzioni che ti interessano",
+            answers: [
+                { id:"design", text:"Design elegante e moderno" },
+                { id:"qualita", text:"Alta qualità dei materiali" },
+                { id:"prezzo", text:"Rapporto qualità-prezzo" },
+                { id:"marca", text:"Prestigio del brand" },
+                { id:"funzionalita", text:"Funzionalità pratiche" }
+            ]
+        },
+        {
+            id:"q6p7q8r9",
             type:"open_text",
             required:false,
             title:"Hai suggerimenti per migliorare?",
