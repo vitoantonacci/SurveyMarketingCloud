@@ -77,6 +77,10 @@
                     <!-- Custom Answers -->
                     <div class="answers-section" id="answers-section" style="display: none;">
                         <h3><i class="fas fa-list"></i> Risposte</h3>
+                        <div class="helper-text" id="answers-helper-text" style="display: none;">
+                            <p><i class="fas fa-info-circle"></i> Per ogni risposta, seleziona dove indirizzare l'utente se viene scelta quella opzione.</p>
+                            <p><strong>Esempio:</strong> Se risponde "Principiante" → vai alla domanda "Livello base"</p>
+                        </div>
                         <div id="answers-container"></div>
                         <button type="button" class="btn btn-secondary" id="add-answer-btn">
                             <i class="fas fa-plus"></i> Aggiungi Risposta
@@ -90,6 +94,45 @@
                         <button type="button" class="btn btn-secondary" id="add-aspect-btn">
                             <i class="fas fa-plus"></i> Aggiungi Aspetto
                         </button>
+                    </div>
+
+                    <!-- Conditional Logic Section -->
+                    <div class="conditional-logic-section" id="conditional-logic-section" style="display: none;">
+                        <div class="form-row">
+                            <div class="switch-container">
+                                <label>
+                                    Logica Condizionale
+                                    <div class="switch">
+                                        <label>
+                                            <input type="checkbox" id="enable-conditional-logic">
+                                            <span class="lever"></span>
+                                        </label>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Conditional Logic Fields -->
+                        <div class="conditional-fields" id="conditional-fields" style="display: none;">
+                            <!-- Multiple Choice / Yes-No Goto Fields -->
+                            <div class="goto-section" id="goto-section" style="display: none;">
+                                <h3><i class="fas fa-route"></i> Navigazione per Risposta</h3>
+                                <div id="goto-container"></div>
+                            </div>
+
+                            <!-- Logic Rules Section -->
+                            <div class="logic-rules-section" id="logic-rules-section" style="display: none;">
+                                <h3><i class="fas fa-sitemap"></i> Regole di Logica</h3>
+                                <div class="helper-text">
+                                    <p><i class="fas fa-info-circle"></i> Definisci quando saltare a una domanda specifica basandoti sulla risposta dell'utente.</p>
+                                    <p><strong>Esempio:</strong> Se l'utente risponde ≤ 2, vai alla domanda "Suggerimenti"</p>
+                                </div>
+                                <div id="logic-rules-container"></div>
+                                <button type="button" class="btn btn-secondary" id="add-logic-rule-btn">
+                                    <i class="fas fa-plus"></i> Aggiungi Regola
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Form Actions -->

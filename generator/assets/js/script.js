@@ -185,6 +185,16 @@ class SurveyGenerator {
             this.addAspectField();
         });
         
+        // Conditional logic switch
+        document.getElementById('enable-conditional-logic').addEventListener('change', (e) => {
+            this.handleConditionalLogicToggle(e.target.checked);
+        });
+        
+        // Add logic rule button
+        document.getElementById('add-logic-rule-btn').addEventListener('click', () => {
+            this.addLogicRuleField();
+        });
+        
         // Form actions
         document.getElementById('cancel-question-btn').addEventListener('click', () => {
             this.hideQuestionForm();
@@ -251,6 +261,10 @@ class SurveyGenerator {
         // Hide sections
         document.getElementById('answers-section').style.display = 'none';
         document.getElementById('aspects-section').style.display = 'none';
+        document.getElementById('conditional-logic-section').style.display = 'none';
+        
+        // Reset conditional logic
+        this.resetConditionalLogic();
         
         // Clear validation errors
         this.clearValidationErrors();
@@ -262,12 +276,14 @@ class SurveyGenerator {
     handleQuestionTemplateChange(value) {
         const answersSection = document.getElementById('answers-section');
         const aspectsSection = document.getElementById('aspects-section');
+        const conditionalLogicSection = document.getElementById('conditional-logic-section');
         const answersContainer = document.getElementById('answers-container');
         const aspectsContainer = document.getElementById('aspects-container');
         
         // Hide all sections first
         answersSection.style.display = 'none';
         aspectsSection.style.display = 'none';
+        conditionalLogicSection.style.display = 'none';
         
         if (!value) {
             return;
@@ -296,6 +312,22 @@ class SurveyGenerator {
                 this.addAspectField(aspect.name);
             });
         }
+        
+        // Show conditional logic section only for supported question types
+        if (value === 'open_text') {
+            conditionalLogicSection.style.display = 'none';
+        } else {
+            conditionalLogicSection.style.display = 'block';
+        }
+        
+        // Reset conditional logic
+        this.resetConditionalLogic();
+        
+        // Hide answers helper text initially
+        const answersHelperText = document.getElementById('answers-helper-text');
+        if (answersHelperText) {
+            answersHelperText.style.display = 'none';
+        }
     }
     
     addAnswerField(value = '') {
@@ -303,14 +335,100 @@ class SurveyGenerator {
         const answerDiv = document.createElement('div');
         answerDiv.className = 'answer-item';
         
-        answerDiv.innerHTML = `
-            <input type="text" value="${value}" placeholder="Inserisci risposta">
-            <button type="button" class="remove-answer-btn" onclick="this.parentElement.remove()">
-                <i class="fas fa-times"></i>
-            </button>
-        `;
+        const conditionalLogicEnabled = document.getElementById('enable-conditional-logic').checked;
+        const questionType = document.getElementById('question-template').value;
+        
+        if (conditionalLogicEnabled && (questionType === 'multiple_choice' || questionType === 'yes_no')) {
+            answerDiv.className = 'answer-item with-goto';
+            const destinationSelect = this.createQuestionDropdown();
+            
+            // Set the goto value if we have temp data
+            if (this.tempGotoData) {
+                const matchingAnswer = this.tempGotoData.find(ans => ans.text === value);
+                if (matchingAnswer) {
+                    destinationSelect.value = matchingAnswer.goto || '';
+                }
+            }
+            
+            answerDiv.innerHTML = `
+                <div class="answer-input-row">
+                    <input type="text" value="${value}" placeholder="Inserisci risposta">
+                    <button type="button" class="remove-answer-btn" onclick="this.parentElement.parentElement.remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="goto-row">
+                    <span>Se selezionata →</span>
+                    ${destinationSelect.outerHTML}
+                </div>
+            `;
+        } else {
+            answerDiv.innerHTML = `
+                <input type="text" value="${value}" placeholder="Inserisci risposta">
+                <button type="button" class="remove-answer-btn" onclick="this.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+        }
         
         container.appendChild(answerDiv);
+        
+        // Initialize Materialize components for the new select
+        if (conditionalLogicEnabled && (questionType === 'multiple_choice' || questionType === 'yes_no')) {
+            const select = answerDiv.querySelector('select');
+            if (select) {
+                M.FormSelect.init(select);
+            }
+        }
+    }
+    
+    updateAllAnswerFields() {
+        const questionType = document.getElementById('question-template').value;
+        const conditionalLogicEnabled = document.getElementById('enable-conditional-logic').checked;
+        
+        if (questionType === 'multiple_choice' || questionType === 'yes_no') {
+            const answerItems = document.querySelectorAll('#answers-container .answer-item');
+            answerItems.forEach((item) => {
+                const input = item.querySelector('input[type="text"]');
+                const value = input ? input.value : '';
+                
+                // Remove the item
+                item.remove();
+                
+                // Recreate it with the new structure
+                this.addAnswerField(value);
+            });
+            
+            // Initialize Materialize components for all selects
+            setTimeout(() => {
+                const selects = document.querySelectorAll('#answers-container select');
+                selects.forEach(select => {
+                    M.FormSelect.init(select);
+                });
+            }, 50);
+        }
+    }
+    
+    updateGotoFields() {
+        const questionType = document.getElementById('question-template').value;
+        if (questionType === 'multiple_choice') {
+            // Clear existing goto fields
+            const container = document.getElementById('goto-container');
+            const helperText = container.querySelector('.helper-text');
+            container.innerHTML = '';
+            if (helperText) {
+                container.appendChild(helperText);
+            }
+            
+            // Recreate goto fields for all current answers
+            const answerInputs = document.querySelectorAll('#answers-container .answer-item input');
+            answerInputs.forEach((input, index) => {
+                const value = input.value.trim();
+                if (value) {
+                    this.addGotoField(value, index);
+                }
+            });
+        }
     }
     
     addAspectField(value = '') {
@@ -326,6 +444,235 @@ class SurveyGenerator {
         `;
         
         container.appendChild(aspectDiv);
+    }
+    
+    // Conditional Logic Methods
+    resetConditionalLogic() {
+        document.getElementById('enable-conditional-logic').checked = false;
+        document.getElementById('conditional-fields').style.display = 'none';
+        document.getElementById('goto-container').innerHTML = '';
+        document.getElementById('logic-rules-container').innerHTML = '';
+    }
+    
+    handleConditionalLogicToggle(enabled) {
+        const conditionalFields = document.getElementById('conditional-fields');
+        const answersHelperText = document.getElementById('answers-helper-text');
+        const questionType = document.getElementById('question-template').value;
+        
+        if (enabled) {
+            conditionalFields.style.display = 'block';
+            this.setupConditionalFields(questionType);
+            
+            // Show helper text for answers if it's multiple choice or yes/no
+            if (questionType === 'multiple_choice' || questionType === 'yes_no') {
+                if (answersHelperText) {
+                    answersHelperText.style.display = 'block';
+                }
+                this.updateAllAnswerFields();
+            }
+        } else {
+            conditionalFields.style.display = 'none';
+            
+            // Hide helper text for answers
+            if (answersHelperText) {
+                answersHelperText.style.display = 'none';
+            }
+            this.updateAllAnswerFields();
+        }
+    }
+    
+    setupConditionalFields(questionType) {
+        const gotoSection = document.getElementById('goto-section');
+        const logicRulesSection = document.getElementById('logic-rules-section');
+        
+        // Hide all sections first
+        gotoSection.style.display = 'none';
+        logicRulesSection.style.display = 'none';
+        
+        // Show appropriate sections based on question type
+        if (questionType === 'multiple_choice' || questionType === 'yes_no') {
+            // For multiple choice and yes/no, we don't need the goto-section anymore
+            // since the dropdowns are now integrated in the answers section
+            gotoSection.style.display = 'none';
+        } else if (questionType === 'likert_scale' || questionType === 'multi_likert') {
+            logicRulesSection.style.display = 'block';
+        }
+        // Note: open_text does not support conditional logic
+    }
+    
+    setupGotoFields(questionType) {
+        const container = document.getElementById('goto-container');
+        container.innerHTML = '';
+        
+        // Add helper text
+        const helperText = document.createElement('div');
+        helperText.className = 'helper-text';
+        helperText.innerHTML = `
+            <p><i class="fas fa-info-circle"></i> Seleziona dove indirizzare l'utente per ogni risposta.</p>
+            <p><strong>Esempio:</strong> Se risponde "Principiante" → vai alla domanda "Livello base"</p>
+        `;
+        container.appendChild(helperText);
+        
+        if (questionType === 'multiple_choice') {
+            // Get current answers and create goto fields
+            const answerInputs = document.querySelectorAll('#answers-container .answer-item input');
+            answerInputs.forEach((input, index) => {
+                const value = input.value.trim();
+                if (value) {
+                    this.addGotoField(value, index);
+                }
+            });
+        } else if (questionType === 'yes_no') {
+            // Add default yes/no goto fields
+            this.addGotoField('Sì', 'yes');
+            this.addGotoField('No', 'no');
+        }
+    }
+    
+    addGotoField(answerText, answerId = null) {
+        const container = document.getElementById('goto-container');
+        const gotoDiv = document.createElement('div');
+        gotoDiv.className = 'goto-item';
+        
+        const destinationSelect = this.createQuestionDropdown();
+        
+        gotoDiv.innerHTML = `
+            <span class="answer-text">${answerText}</span>
+            <span>→</span>
+            ${destinationSelect.outerHTML}
+            <button type="button" class="remove-goto-btn" onclick="this.parentElement.remove()">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        
+        container.appendChild(gotoDiv);
+    }
+    
+    addLogicRuleField() {
+        const container = document.getElementById('logic-rules-container');
+        const questionType = document.getElementById('question-template').value;
+        const ruleDiv = document.createElement('div');
+        ruleDiv.className = 'logic-rule-item';
+        
+        let conditionHTML = '';
+        
+        if (questionType === 'likert_scale') {
+            conditionHTML = `
+                <select class="operator-select">
+                    <option value="<=">≤ (minore o uguale)</option>
+                    <option value="<">< (minore)</option>
+                    <option value=">=">≥ (maggiore o uguale)</option>
+                    <option value=">">> (maggiore)</option>
+                    <option value="==">= (uguale)</option>
+                    <option value="between">tra (range)</option>
+                </select>
+                <input type="number" class="value-input" placeholder="Valore" min="1" max="5">
+                <input type="number" class="max-value-input" placeholder="Max" min="1" max="5" style="display: none;">
+            `;
+        } else if (questionType === 'multi_likert') {
+            conditionHTML = `
+                <select class="aspect-select">
+                    <option value="*">Qualsiasi aspetto</option>
+                </select>
+                <select class="operator-select">
+                    <option value="<=">≤ (minore o uguale)</option>
+                    <option value="<">< (minore)</option>
+                    <option value=">=">≥ (maggiore o uguale)</option>
+                    <option value=">">> (maggiore)</option>
+                    <option value="==">= (uguale)</option>
+                </select>
+                <input type="number" class="value-input" placeholder="Valore" min="1" max="5">
+            `;
+        }
+        
+        const destinationSelect = this.createQuestionDropdown();
+        
+        ruleDiv.innerHTML = `
+            <div class="rule-condition">
+                ${conditionHTML}
+            </div>
+            <span>→</span>
+            <div class="rule-goto">
+                ${destinationSelect.outerHTML}
+            </div>
+            <button type="button" class="remove-logic-rule-btn" onclick="this.parentElement.remove()">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        
+        container.appendChild(ruleDiv);
+        
+        // Initialize Materialize components for the new selects
+        setTimeout(() => {
+            const selects = ruleDiv.querySelectorAll('select');
+            selects.forEach(select => {
+                M.FormSelect.init(select);
+            });
+        }, 50);
+        
+        // Setup event listeners for dynamic behavior
+        this.setupLogicRuleListeners(ruleDiv, questionType);
+    }
+    
+    setupLogicRuleListeners(ruleDiv, questionType) {
+        const operatorSelect = ruleDiv.querySelector('.operator-select');
+        const valueInput = ruleDiv.querySelector('.value-input');
+        const maxValueInput = ruleDiv.querySelector('.max-value-input');
+        
+        if (operatorSelect && valueInput) {
+            operatorSelect.addEventListener('change', (e) => {
+                if (e.target.value === 'between' && maxValueInput) {
+                    maxValueInput.style.display = 'inline-block';
+                } else if (maxValueInput) {
+                    maxValueInput.style.display = 'none';
+                }
+            });
+        }
+        
+        // Update aspect options for multi_likert
+        if (questionType === 'multi_likert') {
+            const aspectSelect = ruleDiv.querySelector('.aspect-select');
+            if (aspectSelect) {
+                this.updateAspectOptions(aspectSelect);
+            }
+        }
+    }
+    
+    updateAspectOptions(aspectSelect) {
+        const aspectInputs = document.querySelectorAll('#aspects-container .aspect-item input');
+        const currentOptions = aspectSelect.querySelectorAll('option:not([value="*"])');
+        currentOptions.forEach(option => option.remove());
+        
+        aspectInputs.forEach((input, index) => {
+            const value = input.value.trim();
+            if (value) {
+                const option = document.createElement('option');
+                option.value = value.toLowerCase().replace(/\s+/g, '_');
+                option.textContent = value;
+                aspectSelect.appendChild(option);
+            }
+        });
+    }
+    
+    createQuestionDropdown() {
+        const select = document.createElement('select');
+        select.className = 'destination-select';
+        
+        // Add default option
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = 'Prossima domanda (default)';
+        select.appendChild(defaultOption);
+        
+        // Add existing questions
+        this.questions.forEach((question, index) => {
+            const option = document.createElement('option');
+            option.value = question.id;
+            option.textContent = `${index + 1}. ${question.title}`;
+            select.appendChild(option);
+        });
+        
+        return select;
     }
     
     saveQuestion() {
@@ -388,6 +735,22 @@ class SurveyGenerator {
             question.placeholder = 'Scrivi qui la tua risposta...';
         }
         
+        // Add conditional logic data
+        const conditionalLogicEnabled = document.getElementById('enable-conditional-logic').checked;
+        if (conditionalLogicEnabled) {
+            if (type === 'multiple_choice' || type === 'yes_no') {
+                const gotoData = this.getGotoData();
+                if (gotoData) {
+                    question.answers = gotoData;
+                }
+            } else if (type === 'likert_scale' || type === 'multi_likert') {
+                const logicData = this.getLogicData();
+                if (logicData) {
+                    question.logic = logicData;
+                }
+            }
+        }
+        
         if (hasErrors) {
             this.scrollToFirstError();
             return;
@@ -436,6 +799,163 @@ class SurveyGenerator {
         });
         
         return aspects;
+    }
+    
+    getGotoData() {
+        const answerItems = document.querySelectorAll('#answers-container .answer-item.with-goto');
+        const answers = [];
+        
+        answerItems.forEach((item, index) => {
+            const input = item.querySelector('input[type="text"]');
+            const destinationSelect = item.querySelector('.goto-row select');
+            
+            if (input && destinationSelect) {
+                const answerText = input.value.trim();
+                const gotoValue = destinationSelect.value;
+                
+                if (answerText) {
+                    // Generate unique ID for answer
+                    const answerId = this.generateAnswerId(answerText, index);
+                    
+                    answers.push({
+                        id: answerId,
+                        text: answerText,
+                        goto: gotoValue
+                    });
+                }
+            }
+        });
+        
+        return answers;
+    }
+    
+    getLogicData() {
+        const logicRules = document.querySelectorAll('#logic-rules-container .logic-rule-item');
+        const rules = [];
+        
+        logicRules.forEach((rule) => {
+            const operatorSelect = rule.querySelector('.operator-select');
+            const valueInput = rule.querySelector('.value-input');
+            const maxValueInput = rule.querySelector('.max-value-input');
+            const aspectSelect = rule.querySelector('.aspect-select');
+            const destinationSelect = rule.querySelector('.rule-goto select');
+            
+            if (!operatorSelect || !destinationSelect) return;
+            
+            const when = {};
+            const goto = destinationSelect.value;
+            
+            // Build when condition based on question type
+            const questionType = document.getElementById('question-template').value;
+            
+            if (questionType === 'likert_scale') {
+                when.op = operatorSelect.value;
+                if (operatorSelect.value === 'between') {
+                    when.min = parseInt(valueInput.value);
+                    when.max = parseInt(maxValueInput.value);
+                } else {
+                    when.value = parseInt(valueInput.value);
+                }
+            } else if (questionType === 'multi_likert') {
+                if (aspectSelect) {
+                    when.aspect = aspectSelect.value;
+                }
+                when.op = operatorSelect.value;
+                when.value = parseInt(valueInput.value);
+            }
+            
+            rules.push({
+                when: when,
+                goto: goto
+            });
+        });
+        
+        return rules;
+    }
+    
+    generateAnswerId(text, index) {
+        // Generate a short, stable ID from text
+        const cleanText = text.toLowerCase()
+            .replace(/[^a-z0-9]/g, '')
+            .substring(0, 3);
+        return cleanText + index.toString();
+    }
+    
+    loadGotoData(answers) {
+        // This method is no longer needed since goto data is now embedded in answer fields
+        // The data will be loaded when the answer fields are recreated with the goto structure
+        console.log('loadGotoData called - data will be loaded via answer fields');
+    }
+    
+    loadLogicData(logicRules) {
+        const container = document.getElementById('logic-rules-container');
+        container.innerHTML = '';
+        
+        logicRules.forEach(rule => {
+            const ruleDiv = document.createElement('div');
+            ruleDiv.className = 'logic-rule-item';
+            
+            const questionType = document.getElementById('question-template').value;
+            let conditionHTML = '';
+            
+            if (questionType === 'likert_scale') {
+                conditionHTML = `
+                    <select class="operator-select">
+                        <option value="<=" ${rule.when.op === '<=' ? 'selected' : ''}>≤ (minore o uguale)</option>
+                        <option value="<" ${rule.when.op === '<' ? 'selected' : ''}>< (minore)</option>
+                        <option value=">=" ${rule.when.op === '>=' ? 'selected' : ''}>≥ (maggiore o uguale)</option>
+                        <option value=">" ${rule.when.op === '>' ? 'selected' : ''}>> (maggiore)</option>
+                        <option value="==" ${rule.when.op === '==' ? 'selected' : ''}>= (uguale)</option>
+                        <option value="between" ${rule.when.op === 'between' ? 'selected' : ''}>tra (range)</option>
+                    </select>
+                    <input type="number" class="value-input" placeholder="Valore" min="1" max="5" value="${rule.when.value || rule.when.min || ''}">
+                    <input type="number" class="max-value-input" placeholder="Max" min="1" max="5" value="${rule.when.max || ''}" style="${rule.when.op === 'between' ? '' : 'display: none;'}">
+                `;
+            } else if (questionType === 'multi_likert') {
+                conditionHTML = `
+                    <select class="aspect-select">
+                        <option value="*" ${rule.when.aspect === '*' ? 'selected' : ''}>Qualsiasi aspetto</option>
+                    </select>
+                    <select class="operator-select">
+                        <option value="<=" ${rule.when.op === '<=' ? 'selected' : ''}>≤ (minore o uguale)</option>
+                        <option value="<" ${rule.when.op === '<' ? 'selected' : ''}>< (minore)</option>
+                        <option value=">=" ${rule.when.op === '>=' ? 'selected' : ''}>≥ (maggiore o uguale)</option>
+                        <option value=">" ${rule.when.op === '>' ? 'selected' : ''}>> (maggiore)</option>
+                        <option value="==" ${rule.when.op === '==' ? 'selected' : ''}>= (uguale)</option>
+                    </select>
+                    <input type="number" class="value-input" placeholder="Valore" min="1" max="5" value="${rule.when.value || ''}">
+                `;
+            }
+            
+            const destinationSelect = this.createQuestionDropdown();
+            destinationSelect.value = rule.goto || '';
+            
+            ruleDiv.innerHTML = `
+                <div class="rule-condition">
+                    ${conditionHTML}
+                </div>
+                <span>→</span>
+                <div class="rule-goto">
+                    ${destinationSelect.outerHTML}
+                </div>
+                <button type="button" class="remove-logic-rule-btn" onclick="this.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            container.appendChild(ruleDiv);
+            
+            // Setup event listeners
+            this.setupLogicRuleListeners(ruleDiv, questionType);
+        });
+        
+        // Initialize Materialize components for all selects
+        setTimeout(() => {
+            const selects = container.querySelectorAll('select');
+            selects.forEach(select => {
+                M.FormSelect.init(select);
+            });
+        }, 100);
     }
     
     // Validation methods
@@ -653,6 +1173,10 @@ class SurveyGenerator {
         if (question.type === 'multiple_choice' && question.answers) {
             const container = document.getElementById('answers-container');
             container.innerHTML = '';
+            
+            // Store the goto data for later use
+            this.tempGotoData = question.answers;
+            
             question.answers.forEach(answer => {
                 this.addAnswerField(answer.text);
             });
@@ -665,6 +1189,22 @@ class SurveyGenerator {
             question.aspects.forEach(aspect => {
                 this.addAspectField(aspect.name);
             });
+        }
+        
+        // Load conditional logic if present
+        if (question.answers && question.answers.some(ans => ans.goto !== undefined)) {
+            // This is a multiple_choice or yes_no with goto data
+            document.getElementById('enable-conditional-logic').checked = true;
+            this.handleConditionalLogicToggle(true);
+            // Clear temp data after use
+            setTimeout(() => {
+                this.tempGotoData = null;
+            }, 100);
+        } else if (question.logic && question.logic.length > 0) {
+            // This is a likert_scale, multi_likert, or open_text with logic data
+            document.getElementById('enable-conditional-logic').checked = true;
+            this.handleConditionalLogicToggle(true);
+            this.loadLogicData(question.logic);
         }
         
         // Update states for dynamic inputs
@@ -748,7 +1288,7 @@ class SurveyGenerator {
     }
     
     generateExportCode() {
-        // Export questions with their existing alphanumeric IDs
+        // Export only questions with their conditional logic
         const questionsJson = JSON.stringify(this.questions, null, 4);
         return `questions: ${questionsJson}`;
     }
