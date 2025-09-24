@@ -183,9 +183,10 @@ ThankYouManager.prototype.generateSurveySummary = function() {
     for (var i = 0; i < this.surveyData.results.length; i++) {
         var result = this.surveyData.results[i];
         var questionText = this.getQuestionText(result.questionId);
+        var questionNumber = this.getQuestionNumber(result.questionId);
         
         summary += '<div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #e9ecef;">';
-        summary += '<strong style="color: #1d1d1d;">Domanda ' + result.questionId + ':</strong><br>';
+        summary += '<strong style="color: #1d1d1d;">Domanda ' + questionNumber + ':</strong><br>';
         summary += '<span style="color: #333; font-size: 14px; font-style: italic; margin: 5px 0; display: block;">' + questionText + '</span>';
         summary += '<span style="color: #666; font-size: 14px;"><strong>Risposta:</strong> ' + this.formatAnswer(result) + '</span>';
         summary += '</div>';
@@ -218,6 +219,22 @@ ThankYouManager.prototype.getQuestionText = function(questionId) {
     }
     
     return 'Domanda non trovata';
+};
+
+ThankYouManager.prototype.getQuestionNumber = function(questionId) {
+    if (typeof questionsData === 'undefined' || !questionsData.questions) {
+        return '?';
+    }
+    
+    // Find the question and return its sequential number based on the order it appears
+    // This is a simplified approach - in a real scenario, you'd want to track the actual flow
+    for (var i = 0; i < questionsData.questions.length; i++) {
+        if (questionsData.questions[i].id === questionId) {
+            return i + 1;
+        }
+    }
+    
+    return '?';
 };
 
 ThankYouManager.prototype.formatAnswer = function(result) {

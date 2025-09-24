@@ -1,5 +1,6 @@
 // Questions data for Survey Marketing Cloud
 //?email=%%=v(@CustomerEmail)=%%&Country=%%=v(@country)=%%&Language=%%=v(@language)=%%&age=%%=v(@ageCluster)=%%&gender=%%=v(@gender)=%%
+
 var questionsData = {
     cover: {
         title: "Scopri le tue preferenze digitali",
@@ -23,87 +24,64 @@ var questionsData = {
     },
     questions: [
         {
-            id: 1,
-            type: "multiple_choice", // multiple_choice | likert_scale | multi_likert | yes_no | open_text
-            required: true, // true | false
-            title: "1. Qual è la tua esperienza con i prodotti digitali?",
+            id: "q1a2b3c4",
+            type: "multiple_choice",
+            required: true,
+            title: "Qual è la tua esperienza con i prodotti digitali?",
             description: "Aiutaci a capire meglio le tue preferenze per migliorare i nostri servizi",
             answers: [
-                {
-                    text: "Sono un principiante, ho poca esperienza"
-                },
-                {
-                    text: "Ho un'esperienza intermedia"
-                },
-                {
-                    text: "Sono abbastanza esperto"
-                },
-                {
-                    text: "Sono molto esperto"
-                },
-                {
-                    text: "Sono un esperto professionista"
-                }
+                { id:"beg",  text:"Sono un principiante, ho poca esperienza", goto:"q2d5e6f7" }, // salta a Likert
+                { id:"mid",  text:"Ho un'esperienza intermedia",              goto:"" },         // default: next
+                { id:"good", text:"Sono abbastanza esperto",              goto:"q3g8h9i0" },     // salta sì/no
+                { id:"very", text:"Sono molto esperto",                   goto:"q4j1k2l3" },     // salta al multi-likert
+                { id:"pro",  text:"Sono un esperto professionista",       goto:"q4j1k2l3" }
             ]
         },
         {
-            id: 2,
+            id: "q2d5e6f7",
             type: "likert_scale",
             required: true,
-            title: "2. Quanto sei soddisfatto del nostro servizio?",
+            title: "Quanto sei soddisfatto del nostro servizio?",
             description: "Valuta la tua soddisfazione generale",
-            scale: {
-                min: 1,
-                max: 5,
-                labels: {
-                    min: "1 = Per niente soddisfatto",
-                    max: "5 = Molto soddisfatto"
-                }
-            }
+            scale: { min:1, max:5, labels:{ min:"1 = Per niente soddisfatto", max:"5 = Molto soddisfatto" } },
+            // regole valutate in ordine: la prima che matcha vince
+            logic: [
+                { when:{ op:"<=", value:2 }, goto:"q5m4n5o6" }, // molto insoddisfatto => chiedi suggerimenti
+                { when:{ op:">=", value:4 }, goto:"q3g8h9i0" }  // soddisfatto => vai alla raccomandazione
+            ]
         },
         {
-            id: 3,
-            type: "yes_no",
-            required: true,
-            title: "3. Raccomanderesti il nostro servizio?",
-            description: "La tua opinione è importante per noi"
+            id:"q3g8h9i0",
+            type:"yes_no",
+            required:true,
+            title:"Raccomanderesti il nostro servizio?",
+            description:"La tua opinione è importante per noi",
+            // anche sui yes/no puoi mettere goto sugli "answers" standardizzati
+            answers: [
+                { id:"yes", text:"Sì", goto:"q4j1k2l3" },
+                { id:"no",  text:"No", goto:"q5m4n5o6" }
+            ]
         },
         {
-            id: 4,
+            id: "q4j1k2l3",
             type: "multi_likert",
             required: true,
-            title: "4. Come valuteresti le borse Guess da 1 a 5 nei seguenti aspetti?",
+            title: "Come valuteresti le borse Guess da 1 a 5 nei seguenti aspetti?",
             description: "Valuta ogni aspetto separatamente",
-            aspects: [
-                {
-                    name: "Forma",
-                    id: "forma"
-                },
-                {
-                    name: "Colori", 
-                    id: "colori"
-                },
-                {
-                    name: "Materiali",
-                    id: "materiali"
-                }
-            ],
-            scale: {
-                min: 1,
-                max: 5,
-                labels: {
-                    min: "1 = Per niente soddisfatto",
-                    max: "5 = Molto soddisfatto"
-                }
-            }
+            aspects: [{name:"Forma",id:"forma"},{name:"Colori",id:"colori"},{name:"Materiali",id:"materiali"}],
+            scale: { min:1, max:5, labels:{ min:"1 = Per niente soddisfatto", max:"5 = Molto soddisfatto" } },
+            logic: [
+                // Se qualunque aspetto <=2, chiedi suggerimenti
+                { when:{ aspect:"*", op:"<=", value:2 }, goto:"q5m4n5o6" }
+            ]
         },
         {
-            id: 5,
-            type: "open_text",
-            required: false,
-            title: "5. Hai suggerimenti per migliorare?",
-            description: "Condividi le tue idee e feedback",
-            placeholder: "Scrivi qui i tuoi suggerimenti..."
+            id:"q5m4n5o6",
+            type:"open_text",
+            required:false,
+            title:"Hai suggerimenti per migliorare?",
+            description:"Condividi le tue idee e feedback",
+            placeholder:"Scrivi qui i tuoi suggerimenti..."
         }
     ]
 };
@@ -119,4 +97,14 @@ function getGuessLogo() {
         '</g>' +
         '<path d="M334.3,40c-2.3-2.9-6.2-6-11.6-9.4l-8.6-5.3c-3.1-1.9-5.4-3.7-6.8-5.4c-1.3-1.6-2-3.4-2-5.7c0-2.4,0.8-4.3,2.5-5.6c1.8-1.4,3.8-2.1,6.2-2.1c3.2,0,6.4,1.2,9.7,3.5c3.3,2.3,5.7,6.5,7.2,12.4l0.2,0.9h4.5l-2.4-23.1h-4l-0.2,0.9c-0.2,0.9-0.5,1.5-0.8,2c-0.2,0.3-0.8,0.4-1.6,0.4c-0.2,0-1-0.2-5-1.6c-3.2-1.1-6.1-1.7-8.4-1.7c-5.7,0-10.3,1.8-13.8,5.2c-3.5,3.5-5.2,7.9-5.2,13.1c0,4,1.5,7.7,4.5,11c1.6,1.7,3.7,3.4,6.2,5l8.3,5.2c4.7,2.9,7.8,5.1,9.2,6.5c2.1,2.1,3.1,4.6,3.1,7.5c0,3.2-1,5.6-3,7.3c-2.1,1.8-4.4,2.7-7.3,2.7c-5.4,0-9.8-2.1-13.5-6.4c-2.1-2.5-4-5.9-5.6-10.1l-0.3-0.8h-4.4l3.2,23.1h4.2l0.2-1c0.1-0.7,0.3-1.3,0.6-1.8c0.2-0.3,0.6-0.5,1.3-0.5c0.2,0,1,0.2,5.3,1.6c3.4,1.2,6.7,1.8,9.8,1.8c6.3,0,11.5-1.8,15.6-5.4c4.1-3.6,6.2-8.2,6.2-13.7C337.8,46.6,336.6,43,334.3,40z"></path>' +
         '</svg>';
+}
+
+// Function to generate unique alphanumeric IDs
+function generateUniqueId() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < 8; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
 }

@@ -2,12 +2,21 @@
 class SurveyGenerator {
     constructor() {
         this.questions = [];
-        this.currentQuestionId = 1;
         this.templates = this.initializeTemplates();
         this.storageKey = 'survey-generator-questions';
         this.editingIndex = undefined;
         
         this.init();
+    }
+    
+    // Function to generate unique alphanumeric IDs
+    generateUniqueId() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let result = '';
+        for (let i = 0; i < 8; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
     }
     
     init() {
@@ -348,7 +357,7 @@ class SurveyGenerator {
         }
         
         const question = {
-            id: this.currentQuestionId++,
+            id: this.generateUniqueId(),
             type: type,
             required: required,
             title: title,
@@ -524,7 +533,6 @@ class SurveyGenerator {
         try {
             const data = {
                 questions: this.questions,
-                currentQuestionId: this.currentQuestionId,
                 timestamp: new Date().toISOString()
             };
             localStorage.setItem(this.storageKey, JSON.stringify(data));
@@ -539,18 +547,10 @@ class SurveyGenerator {
             if (stored) {
                 const data = JSON.parse(stored);
                 this.questions = data.questions || [];
-                this.currentQuestionId = data.currentQuestionId || 1;
-                
-                // Update currentQuestionId to be higher than existing questions
-                if (this.questions.length > 0) {
-                    const maxId = Math.max(...this.questions.map(q => q.id));
-                    this.currentQuestionId = maxId + 1;
-                }
             }
         } catch (error) {
             console.error('Error loading from localStorage:', error);
             this.questions = [];
-            this.currentQuestionId = 1;
         }
     }
     
@@ -558,7 +558,6 @@ class SurveyGenerator {
         try {
             localStorage.removeItem(this.storageKey);
             this.questions = [];
-            this.currentQuestionId = 1;
             this.updateUI();
         } catch (error) {
             console.error('Error clearing localStorage:', error);
@@ -749,13 +748,8 @@ class SurveyGenerator {
     }
     
     generateExportCode() {
-        // Create a copy of questions with sequential IDs
-        const questionsWithSequentialIds = this.questions.map((question, index) => ({
-            ...question,
-            id: index + 1
-        }));
-        
-        const questionsJson = JSON.stringify(questionsWithSequentialIds, null, 4);
+        // Export questions with their existing alphanumeric IDs
+        const questionsJson = JSON.stringify(this.questions, null, 4);
         return `questions: ${questionsJson}`;
     }
     

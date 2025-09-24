@@ -1,8 +1,121 @@
 // JavaScript file for Survey Marketing Cloud
 
+// Conditional Logic Engine
+var ConditionalLogic = {
+    // Build index map for O(1) lookup
+    buildIndex: function(questions) {
+        var index = {};
+        for (var i = 0; i < questions.length; i++) {
+            index[questions[i].id] = i;
+        }
+        return index;
+    },
+    
+    // Get next question ID based on current answer
+    getNextId: function(questions, idx, answer, questionIndex) {
+        var question = questions[idx];
+        var nextId = null;
+        
+        // Priority 1: For multiple_choice/yes_no, check answer.goto
+        if ((question.type === 'multiple_choice' || question.type === 'yes_no') && 
+            question.answers && answer) {
+            for (var i = 0; i < question.answers.length; i++) {
+                var ans = question.answers[i];
+                var answerId = ans.id || i.toString();
+                if (answerId === answer) {
+                    // If goto is empty string, treat as default (next question)
+                    if (ans.goto === "") {
+                        break; // Continue to default behavior
+                    } else if (ans.goto) {
+                        return ans.goto;
+                    }
+                }
+            }
+        }
+        
+        // Priority 2: Check question.logic rules
+        if (question.logic && question.logic.length > 0) {
+            for (var j = 0; j < question.logic.length; j++) {
+                var rule = question.logic[j];
+                if (this.ruleMatch(question, rule.when, answer)) {
+                    return rule.goto;
+                }
+            }
+        }
+        
+        // Priority 3: Default to next question
+        if (idx + 1 < questions.length) {
+            return questions[idx + 1].id;
+        }
+        
+        return null; // End of survey
+    },
+    
+    // Match rule based on question type and answer
+    ruleMatch: function(question, when, answer) {
+        switch (question.type) {
+            case 'likert_scale':
+                return this.numOp(parseInt(answer), when);
+            case 'multi_likert':
+                return this.matchMultiLikert(answer, when);
+            case 'open_text':
+                return this.matchOpenText(answer, when);
+            default:
+                return false;
+        }
+    },
+    
+    // Match multi-likert rules
+    matchMultiLikert: function(answer, when) {
+        if (typeof answer !== 'object' || !answer) return false;
+        
+        if (when.aspect === '*') {
+            // Check if any aspect matches
+            for (var aspect in answer) {
+                if (this.numOp(parseInt(answer[aspect]), when)) {
+                    return true;
+                }
+            }
+            return false;
+        } else {
+            // Check specific aspect
+            return this.numOp(parseInt(answer[when.aspect]), when);
+        }
+    },
+    
+    // Match open text rules
+    matchOpenText: function(answer, when) {
+        if (when.op === 'empty') {
+            return !answer || answer.trim() === '';
+        } else if (when.op === 'not_empty') {
+            return answer && answer.trim() !== '';
+        }
+        return false;
+    },
+    
+    // Numeric operations
+    numOp: function(value, when) {
+        if (isNaN(value)) return false;
+        
+        switch (when.op) {
+            case '<=': return value <= when.value;
+            case '<': return value < when.value;
+            case '>=': return value >= when.value;
+            case '>': return value > when.value;
+            case '==': return value == when.value;
+            case 'between': return value >= when.min && value <= when.max;
+            default: return false;
+        }
+    }
+};
+
 function SurveyManager() {
     this.questions = [];
+    this.questionIndex = {}; // O(1) lookup map
     this.currentQuestionIndex = 0;
+    this.currentQuestionNumber = 1; // Sequential number shown to user
+    this.totalQuestionsShown = 0; // Total questions that will be shown
+    this.questionPath = []; // Track the path of questions shown to user
     this.results = [];
     this.surveyContainer = document.getElementById('survey-container');
     this.selectedAnswer = null;
@@ -53,7 +166,76 @@ SurveyManager.prototype.loadQuestions = function() {
     }
         
     this.questions = questionsData.questions;
+    this.questionIndex = ConditionalLogic.buildIndex(this.questions);
+    this.totalQuestionsShown = this.calculateTotalQuestionsShown();
     this.coverData = questionsData.cover;
+};
+
+SurveyManager.prototype.calculateTotalQuestionsShown = function() {
+    // Simulate the conditional flow to count total questions that will be shown
+    var visited = {};
+    var count = 0;
+    var currentIndex = 0;
+    
+    while (currentIndex < this.questions.length && !visited[currentIndex]) {
+        visited[currentIndex] = true;
+        count++;
+        
+        var question = this.questions[currentIndex];
+        var nextId = null;
+        
+        // Simulate answer selection for different question types
+        var simulatedAnswer = this.getSimulatedAnswer(question);
+        
+        // Calculate next question using conditional logic
+        nextId = ConditionalLogic.getNextId(this.questions, currentIndex, simulatedAnswer, currentIndex);
+        
+        if (nextId === null) {
+            break; // End of survey
+        }
+        
+        var nextIndex = this.questionIndex[nextId];
+        if (nextIndex === undefined) {
+            break; // Invalid next question
+        }
+        
+        currentIndex = nextIndex;
+    }
+    
+    return count;
+};
+
+SurveyManager.prototype.getSimulatedAnswer = function(question) {
+    // Return a simulated answer for calculation purposes
+    switch (question.type) {
+        case 'multiple_choice':
+        case 'yes_no':
+            if (question.answers && question.answers.length > 0) {
+                // Try to find an answer with goto="" for default behavior
+                for (var i = 0; i < question.answers.length; i++) {
+                    if (question.answers[i].goto === "") {
+                        return question.answers[i].id || i.toString();
+                    }
+                }
+                // If no default found, use first answer
+                return question.answers[0].id || '0';
+            }
+            return '0';
+        case 'likert_scale':
+            return '3'; // Middle value
+        case 'multi_likert':
+            var obj = {};
+            if (question.aspects) {
+                for (var i = 0; i < question.aspects.length; i++) {
+                    obj[question.aspects[i].id] = '3';
+                }
+            }
+            return obj;
+        case 'open_text':
+            return 'test'; // Non-empty text
+        default:
+            return '0';
+    }
 };
 
 SurveyManager.prototype.renderCoverPage = function() {
@@ -120,17 +302,18 @@ SurveyManager.prototype.generateQuestionHTML = function(question) {
             actionButtonHTML = this.generateActionButtonHTML(question, true);
     }
 
-    return '<!-- Question Header -->' +
+    return '<div class="question-block" data-qid="' + question.id + '">' +
+        '<!-- Question Header -->' +
         '<div class="question-header">' +
-        (question.id > 1 ? '<div class="progress-container" id="back-btn">' +
+        (this.currentQuestionNumber > 1 ? '<div class="progress-container" id="back-btn">' +
         '<p class="progress-text">' +
         '<i class="fa-thin fa-arrow-left back-arrow"></i>' +
-        'Domanda ' + question.id + ' di ' + this.questions.length +
+        'Domanda ' + this.currentQuestionNumber + ' di ' + this.totalQuestionsShown +
         '</p>' +
         '</div>' : '<div class="progress-container">' +
-        '<p class="progress-text">Domanda ' + question.id + ' di ' + this.questions.length + '</p>' +
+        '<p class="progress-text">Domanda ' + this.currentQuestionNumber + ' di ' + this.totalQuestionsShown + '</p>' +
         '</div>') +
-        '<h1 class="question-title">' + question.title + (question.required ? ' *' : '') + '</h1>' +
+        '<h1 class="question-title">' + this.currentQuestionNumber + '. ' + question.title + (question.required ? ' *' : '') + '</h1>' +
         '<p class="question-description">' + question.description + (!question.required ? ' (Risposta opzionale)' : '') + '</p>' +
         '</div>' +
         '<!-- Answer Options -->' +
@@ -140,6 +323,7 @@ SurveyManager.prototype.generateQuestionHTML = function(question) {
         '<!-- Action Button -->' +
         '<div class="action-container">' +
         actionButtonHTML +
+        '</div>' +
         '</div>';
 };
 
@@ -181,14 +365,31 @@ SurveyManager.prototype.generateLikertScaleHTML = function(question) {
 };
 
 SurveyManager.prototype.generateYesNoHTML = function(question) {
-    return '<div class="yes-no-option" data-answer="yes">' +
-        '<div class="answer-letter"><i class="fa-thin fa-check"></i></div>' +
-        '<div class="answer-text">Sì</div>' +
-        '</div>' +
-        '<div class="yes-no-option" data-answer="no">' +
-        '<div class="answer-letter"><i class="fa-thin fa-xmark"></i></div>' +
-        '<div class="answer-text">No</div>' +
-        '</div>';
+    var html = '';
+    
+    if (question.answers && question.answers.length > 0) {
+        // Use custom answers if provided
+        for (var i = 0; i < question.answers.length; i++) {
+            var answer = question.answers[i];
+            var icon = answer.id === 'yes' ? 'fa-check' : 'fa-xmark';
+            html += '<div class="yes-no-option" data-answer="' + answer.id + '">' +
+                '<div class="answer-letter"><i class="fa-thin ' + icon + '"></i></div>' +
+                '<div class="answer-text">' + answer.text + '</div>' +
+                '</div>';
+        }
+    } else {
+        // Default yes/no options
+        html = '<div class="yes-no-option" data-answer="yes">' +
+            '<div class="answer-letter"><i class="fa-thin fa-check"></i></div>' +
+            '<div class="answer-text">Sì</div>' +
+            '</div>' +
+            '<div class="yes-no-option" data-answer="no">' +
+            '<div class="answer-letter"><i class="fa-thin fa-xmark"></i></div>' +
+            '<div class="answer-text">No</div>' +
+            '</div>';
+    }
+    
+    return html;
 };
 
 SurveyManager.prototype.generateOpenTextHTML = function(question) {
@@ -229,7 +430,7 @@ SurveyManager.prototype.generateMultiLikertHTML = function(question) {
 };
 
 SurveyManager.prototype.generateActionButtonHTML = function(question, showCheckmark) {
-    var buttonText = question.id === this.questions.length ? 'INVIA' : 'AVANTI';
+    var buttonText = this.currentQuestionNumber === this.totalQuestionsShown ? 'INVIA' : 'AVANTI';
     var checkmarkHTML = showCheckmark ? 
         '<div id="check-icon" class="checkmark">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
@@ -259,8 +460,8 @@ SurveyManager.prototype.updateProgressBar = function(question) {
         progressFill = progressBar.querySelector('.progress-fill');
     }
     
-    // Update width with animation
-    var newWidth = ((question.id / this.questions.length) * 100);
+    // Update width with animation based on sequential numbering
+    var newWidth = ((this.currentQuestionNumber / this.totalQuestionsShown) * 100);
     progressFill.style.width = newWidth + '%';
 };
 
@@ -370,8 +571,15 @@ SurveyManager.prototype.handleAnswerSelection = function(selectedOption, allOpti
     // Add selected class to clicked option
     selectedOption.classList.add('selected');
     
-    // Get selected answer
-    this.selectedAnswer = selectedOption.getAttribute('data-answer');
+    // Get selected answer - use answer ID if available, otherwise fallback to data-answer
+    var currentQuestion = this.questions[this.currentQuestionIndex];
+    var answerIndex = parseInt(selectedOption.getAttribute('data-answer').charCodeAt(0) - 65); // A=0, B=1, etc.
+    
+    if (currentQuestion.answers && currentQuestion.answers[answerIndex] && currentQuestion.answers[answerIndex].id) {
+        this.selectedAnswer = currentQuestion.answers[answerIndex].id;
+    } else {
+        this.selectedAnswer = selectedOption.getAttribute('data-answer');
+    }
     
     // Enable confirm button
     confirmBtn.disabled = false;
@@ -436,8 +644,22 @@ SurveyManager.prototype.handleYesNoSelection = function(selectedOption, allOptio
     // Add selected class to clicked option
     selectedOption.classList.add('selected');
     
-    // Get selected answer
-    this.selectedAnswer = selectedOption.getAttribute('data-answer');
+    // Get selected answer - use answer ID if available, otherwise fallback to data-answer
+    var currentQuestion = this.questions[this.currentQuestionIndex];
+    var answerValue = selectedOption.getAttribute('data-answer');
+    
+    if (currentQuestion.answers) {
+        for (var j = 0; j < currentQuestion.answers.length; j++) {
+            if (currentQuestion.answers[j].id === answerValue) {
+                this.selectedAnswer = currentQuestion.answers[j].id;
+                break;
+            }
+        }
+    }
+    
+    if (!this.selectedAnswer) {
+        this.selectedAnswer = answerValue;
+    }
     
     // Enable confirm button
     confirmBtn.disabled = false;
@@ -601,8 +823,35 @@ SurveyManager.prototype.handleConfirmClick = function() {
     var confirmBtn = document.getElementById('confirm-btn');
     confirmBtn.disabled = true;
 
-    // Transition immediately since animation already completed
-    this.transitionToNextQuestion();
+    // Calculate next question using conditional logic
+    var nextQuestionId = ConditionalLogic.getNextId(this.questions, this.currentQuestionIndex, this.selectedAnswer, this.currentQuestionIndex);
+    
+    console.log('Conditional Logic Debug:', {
+        currentQuestion: currentQuestion.id,
+        currentAnswer: this.selectedAnswer,
+        nextQuestionId: nextQuestionId,
+        questionIndex: this.questionIndex
+    });
+    
+    if (nextQuestionId === null) {
+        // End of survey
+        console.log('End of survey reached');
+        this.showResults();
+    } else {
+        // Find next question index
+        var nextIndex = this.questionIndex[nextQuestionId];
+        if (nextIndex !== undefined) {
+            console.log('Navigating to question:', nextQuestionId, 'at index:', nextIndex);
+            this.currentQuestionIndex = nextIndex;
+            this.currentQuestionNumber++; // Increment sequential number
+            this.questionPath.push(nextIndex); // Track the path
+            this.selectedAnswer = null;
+            this.renderCurrentQuestion();
+        } else {
+            console.error('Next question not found:', nextQuestionId);
+            this.showResults();
+        }
+    }
 };
 
 SurveyManager.prototype.transitionToNextQuestion = function() {
@@ -633,12 +882,19 @@ SurveyManager.prototype.transitionToNextQuestion = function() {
 };
 
 SurveyManager.prototype.handleBackClick = function() {
-    if (this.currentQuestionIndex > 0) {
+    if (this.currentQuestionNumber > 1) {
         // Get the previous answer before removing it
         var previousAnswer = this.results[this.results.length - 1];
         
         // Remove last answer from results
         this.results.pop();
+        
+        // Decrement sequential number
+        this.currentQuestionNumber--;
+        
+        // Remove current question from path and get previous
+        this.questionPath.pop();
+        var previousIndex = this.questionPath[this.questionPath.length - 1];
         
         // Start transition animation
         this.surveyContainer.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
@@ -647,8 +903,8 @@ SurveyManager.prototype.handleBackClick = function() {
         
         var self = this;
         setTimeout(function() {
-            // Move to previous question
-            self.currentQuestionIndex--;
+            // Move to previous question using tracked path
+            self.currentQuestionIndex = previousIndex;
             self.selectedAnswer = previousAnswer ? previousAnswer.answer : null;
             
             // Reset container styles
@@ -708,7 +964,12 @@ SurveyManager.prototype.preselectAnswer = function(answerValue) {
         case 'multiple_choice':
             var answerOptions = document.querySelectorAll('.answer-option');
             for (var i = 0; i < answerOptions.length; i++) {
-                if (answerOptions[i].getAttribute('data-answer') === answerValue) {
+                var dataAnswer = answerOptions[i].getAttribute('data-answer');
+                var answerIndex = parseInt(dataAnswer.charCodeAt(0) - 65);
+                var answerId = currentQuestion.answers && currentQuestion.answers[answerIndex] ? 
+                    currentQuestion.answers[answerIndex].id : dataAnswer;
+                
+                if (answerId === answerValue || dataAnswer === answerValue) {
                     answerOptions[i].classList.add('selected');
                     confirmBtn.disabled = false;
                     this.animateCheckmark(checkIcon);
@@ -816,6 +1077,9 @@ SurveyManager.prototype.setupCoverEventListeners = function() {
 SurveyManager.prototype.startSurvey = function() {
     var coverWrapper = document.getElementById('cover-wrapper');
     var surveyWrapper = document.getElementById('survey-wrapper');
+    
+    // Initialize question path with first question
+    this.questionPath = [this.currentQuestionIndex];
     
     // Start fade out animation for cover page
     coverWrapper.classList.add('fade-out');
