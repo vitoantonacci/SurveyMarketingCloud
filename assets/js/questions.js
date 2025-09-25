@@ -6,21 +6,21 @@ var questionsData = {
         title: "Scopri le tue preferenze digitali",
         description: "Un breve sondaggio per capire meglio le tue abitudini e preferenze tecnologiche. Ci aiuterà a migliorare i nostri servizi.",
         buttonText: "Inizia il sondaggio",
-        imageUrl: "https://images.typeform.com/images/RMtyJ36PEuNA/image/default-firstframe.png"
+        imageUrl: "https://img.guess.com/image/upload/f_auto,q_auto/v1/EU/Asset/Europe/E-Commerce/assets/Survey/default-firstframe"
     },
     thankyou: {
         title: "Grazie per il tuo feedback!",
         description: "La tua opinione è preziosa per noi e ci aiuterà a migliorare continuamente i nostri prodotti e servizi. Grazie per aver dedicato il tuo tempo a questo survey.",
         buttonText: "Visita Guess.eu",
         buttonUrl: "https://www.guess.eu",
-        imageUrl: "https://images.typeform.com/images/RMtyJ36PEuNA/image/default-firstframe.png"
+        imageUrl: "https://img.guess.com/image/upload/f_auto,q_auto/v1/EU/Asset/Europe/E-Commerce/assets/Survey/default-firstframe"
     },
     error: {
         title: "Ops! Qualcosa è andato storto",
         description: "Ci dispiace, ma si è verificato un problema tecnico durante l'invio delle tue risposte. Non preoccuparti, le tue risposte sono state salvate localmente e puoi riprovare.",
         buttonText: "Riprova il sondaggio",
         buttonUrl: "survey.html",
-        imageUrl: "https://images.typeform.com/images/RMtyJ36PEuNA/image/default-firstframe.png"
+        imageUrl: "https://img.guess.com/image/upload/f_auto,q_auto/v1/EU/Asset/Europe/E-Commerce/assets/Survey/default-firstframe"
     },
     questions: [
         {
@@ -80,7 +80,7 @@ var questionsData = {
             type:"multiple_choice",
             required:true,
             title:"Quali caratteristiche apprezzi di più nei nostri prodotti?",
-            description:"Seleziona tutte le opzioni che ti interessano",
+            description:"Puoi selezionare più di una opzione",
             answers: [
                 { id:"design", text:"Design elegante e moderno" },
                 { id:"qualita", text:"Alta qualità dei materiali" },
